@@ -1,14 +1,6 @@
 # Machine Learning Vault
 
-A personal knowledge vault of Machine Learning, Deep Learning, NLP/LLM, and Data Science notes, interactive concept lessons, cheatsheets, reference books, notebooks, and curated external resources.
-
-<p align="center">
-  <a href="https://plotly.com/~vg11072001/3/?share_key=DmAKGUnGwLWyctdNu5VIIu" target="_blank" title="ML Structure">
-    <img src="https://plotly.com/~vg11072001/3.png?share_key=DmAKGUnGwLWyctdNu5VIIu" alt="Machine Learning Structure Overview" width="750" />
-  </a>
-  <br />
-  <a href="https://plotly.com/~vg11072001/3/">View Interactive Plot</a>
-</p>
+> A personal knowledge vault of Machine Learning, Deep Learning, NLP/LLM, and Data Science notes, interactive concept lessons, cheatsheets, reference books, notebooks, and curated external resources.
 
 ---
 
