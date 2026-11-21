@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Glossary — Ridge &amp; Lasso Regularization</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="site-nav" aria-label="Course navigation">
+    <div class="site-nav-inner">
+      <a class="site-brand" href="../index.html"><span>L₁ / L₂</span> Ridge &amp; Lasso Course</a>
+      <ul class="nav-links">
+        <li><a href="../index.html">Roadmap</a></li>
+        <li><a href="../lessons/0001-why-ols-breaks-and-regularization-basics.html">Lessons</a></li>
+        <li><a href="./glossary.html" aria-current="page">Glossary</a></li>
+        <li><a href="./interview-cheatsheet.html">Interview Cheat Sheet</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main" class="prose">
+    <header class="lesson-header">
+      <p class="lesson-eyebrow">Reference · Nomenclature</p>
+      <h1>Ridge &amp; Lasso Glossary</h1>
+      <p class="lesson-subtitle">
+        Precise vocabulary adhered to across all lessons and expected in senior ML interviews. Print this page as a quick refresher.
+      </p>
+    </header>
+
+    <dl class="glossary-list">
+      <dt id="ols">Ordinary Least Squares (OLS)</dt>
+      <dd>
+        Linear regression estimator that minimizes Residual Sum of Squares:
+        <code>RSS(β) = ‖y − Xβ‖₂²</code>. Unbiased under Gauss–Markov assumptions, with closed form <code>β̂ = (XᵀX)⁻¹Xᵀy</code> when <code>XᵀX</code> is invertible, but high-variance when predictors are correlated or <code>p ≈ n</code>.
+      </dd>
+
+      <dt id="bias-variance">Bias–Variance Tradeoff</dt>
+      <dd>
+        Decomposition of expected test MSE into <code>Bias² + Variance + Irreducible Noise</code>. Regularization deliberately introduces a small bias by shrinking coefficients toward zero in exchange for a much larger drop in estimator variance, lowering total test MSE.
+      </dd>
+
+      <dt id="multicollinearity">Multicollinearity (Nonorthogonality)</dt>
+      <dd>
+        High linear correlation among predictor columns of <code>X</code>. Causes the smallest eigenvalues of <code>XᵀX</code> to approach zero, inflating <code>Var(β̂) = σ²(XᵀX)⁻¹</code> so correlated coefficients explode with huge opposite signs.
+      </dd>
+
+      <dt id="condition-number">Condition Number κ(XᵀX)</dt>
+      <dd>
+        Ratio of largest to smallest eigenvalue of <code>XᵀX</code>: <code>κ = d₁² / dₚ²</code>. Large <code>κ</code> means tiny noise in <code>y</code> causes massive swings in <code>β̂</code>. Ridge lowers it to <code>(d₁² + λ) / (dₚ² + λ)</code>.
+      </dd>
+
+      <dt id="l2-norm">L₂ Penalty / Ridge Regularization (Tikhonov Regularization)</dt>
+      <dd>
+        Adds <code>λ Σ βⱼ² = λ‖β‖₂²</code> (excluding intercept <code>β₀</code>) to RSS. Strictly convex, differentiable everywhere, yields closed-form <code>(XᵀX + λI)⁻¹Xᵀy</code>, shrinks correlated weights smoothly together, never produces exact zeros for finite <code>λ</code>.
+      </dd>
+
+      <dt id="l1-norm">L₁ Penalty / Lasso (Least Absolute Shrinkage and Selection Operator)</dt>
+      <dd>
+        Adds <code>λ Σ |βⱼ| = λ‖β‖₁</code> (excluding intercept <code>β₀</code>) to RSS. Convex but non-differentiable at <code>βⱼ = 0</code>. Geometrically constrains <code>β</code> inside an <code>L₁</code> cross-polytope (diamond in 2D) whose sharp axis corners produce sparse solutions (exact zeros).
+      </dd>
+
+      <dt id="standardization">Feature Standardization (Z-scoring)</dt>
+      <dd>
+        Transforming each predictor to mean 0 and variance 1: <code>x̃ⱼ = (xⱼ − μⱼ) / sⱼ</code>. Mandatory before Ridge/Lasso/Elastic Net because penalties depend on raw coefficient magnitude; unscaled features with small numeric units have artificially huge coefficients and get unfairly crushed. Always fit <code>μⱼ, sⱼ</code> on training folds only.
+      </dd>
+
+      <dt id="svd">Singular Value Decomposition (SVD)</dt>
+      <dd>
+        Factorization <code>X = U D Vᵀ</code> where <code>U</code>, <code>V</code> are orthonormal and <code>D = diag(d₁, …, dₚ)</code> holds singular values. Reveals that Ridge shrinks the <code>j</code>-th principal component coordinate of <code>y</code> by <code>dⱼ² / (dⱼ² + λ)</code>—penalizing low-variance directions most heavily.
+      </dd>
+
+      <dt id="effective-df">Effective Degrees of Freedom df(λ)</dt>
+      <dd>
+        Measure of model complexity for Ridge: <code>df(λ) = tr(X(XᵀX + λI)⁻¹Xᵀ) = Σ dⱼ² / (dⱼ² + λ)</code>. Equals <code>p</code> at <code>λ = 0</code> (OLS) and approaches <code>0</code> as <code>λ → ∞</code>. For Lasso, unbiased degrees of freedom equals the expected number of active (non-zero) predictors.
+      </dd>
+
+      <dt id="subgradient">Subgradient &amp; Subdifferential</dt>
+      <dd>
+        Generalization of the derivative for convex, non-smooth functions like <code>|β|</code>. At <code>β = 0</code>, the subdifferential of <code>|β|</code> is the entire interval <code>[−1, +1]</code>. A point is optimal when <code>0</code> belongs to the subdifferential of the objective.
+      </dd>
+
+      <dt id="soft-thresholding">Soft-Thresholding Operator S(z, γ)</dt>
+      <dd>
+        Closed-form minimizer of <code>½(β − z)² + γ|β|</code>: equals <code>z − γ</code> if <code>z &gt; γ</code>, <code>z + γ</code> if <code>z &lt; −γ</code>, and <code>0</code> if <code>|z| ≤ γ</code>. Drives Lasso's exact solution in orthonormal designs and each inner step of Coordinate Descent.
+      </dd>
+
+      <dt id="coordinate-descent">Cyclical Coordinate Descent</dt>
+      <dd>
+        Fast iterative solver (used by <code>glmnet</code> and <code>scikit-learn</code>) that minimizes the Lasso or Elastic Net objective one coordinate <code>βⱼ</code> at a time via closed-form soft-thresholding while holding other weights fixed. Converges to the global minimum because the non-smooth penalty is separable across coordinates.
+      </dd>
+
+      <dt id="lars">LARS (Least Angle Regression)</dt>
+      <dd>
+        Piecewise-linear path algorithm (Efron et al., 2004) that computes the entire Lasso regularization path across all <code>λ</code> values in roughly the cost of a single OLS fit (with the Lasso modification dropping variables when they cross zero).
+      </dd>
+
+      <dt id="elastic-net">Elastic Net</dt>
+      <dd>
+        Convex combination of L₁ and L₂ penalties: <code>λ[α‖β‖₁ + ½(1−α)‖β‖₂²]</code> (Zou &amp; Hastie, 2005). Keeps Lasso's sparsity while inheriting Ridge's strict convexity, enabling the <em>grouping effect</em> on correlated features and removing Lasso's <code>min(n, p)</code> cap on selected features.
+      </dd>
+
+      <dt id="map-prior">MAP Equivalence (Gaussian vs. Laplace Prior)</dt>
+      <dd>
+        Bayesian interpretation of regularization: minimizing <code>RSS + λ‖β‖₂²</code> equals Maximum A Posteriori estimation under a zero-mean <strong>Gaussian</strong> prior on <code>β</code>; minimizing <code>RSS + λ‖β‖₁</code> equals MAP under a zero-mean <strong>Laplace</strong> (double-exponential) prior.
+      </dd>
+
+      <dt id="one-se-rule">One-Standard-Error (1-SE) Rule</dt>
+      <dd>
+        Cross-validation heuristic from Hastie et al.: instead of choosing the <code>λ</code> with the absolute lowest CV error, choose the <em>largest</em> <code>λ</code> (simplest, most regularized model) whose CV error is within one standard error of the minimum. Favors parsimony and guards against CV overfitting.
+      </dd>
+
+      <dt id="post-selection">Post-Selection Inference &amp; Relaxed Lasso</dt>
+      <dd>
+        Standard OLS p-values and confidence intervals are invalid if you run Lasso to select variables and then refit OLS on the same data (data snooping inflates false positives). <em>Relaxed Lasso</em> (or sample splitting) decouples variable selection from coefficient estimation to reduce L₁ shrinkage bias on strong signals.
+      </dd>
+    </dl>
+
+    <nav class="lesson-pager" aria-label="Reference navigation">
+      <a href="../index.html">← Back to Roadmap</a>
+      <a href="./interview-cheatsheet.html">Interview Cheat Sheet →</a>
+    </nav>
+  </main>
+</body>
+</html>

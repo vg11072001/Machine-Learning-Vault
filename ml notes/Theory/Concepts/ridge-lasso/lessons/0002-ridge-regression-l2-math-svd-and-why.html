@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Lesson 02: Ridge Regression (L₂) — Closed Form, Eigenvalues &amp; SVD</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="site-nav" aria-label="Course navigation">
+    <div class="site-nav-inner">
+      <a class="site-brand" href="../index.html"><span>L₁ / L₂</span> Ridge &amp; Lasso Course</a>
+      <ul class="nav-links">
+        <li><a href="../index.html">Roadmap</a></li>
+        <li><a href="./0002-ridge-regression-l2-math-svd-and-why.html" aria-current="page">Lesson 02</a></li>
+        <li><a href="../reference/glossary.html">Glossary</a></li>
+        <li><a href="../reference/interview-cheatsheet.html">Interview Cheat Sheet</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="lesson-header">
+      <p class="lesson-eyebrow">Lesson 02 of 05 · Ridge Regression (L₂)</p>
+      <h1>Ridge Regression: Step-by-Step Derivation, Eigenvalues &amp; SVD</h1>
+      <p class="lesson-subtitle">
+        Derive the closed-form Ridge estimator on a whiteboard without stumbling, then uncover its deeper linear-algebra superpower: surgical shrinkage along low-variance principal components.
+      </p>
+      <div class="meta-strip">
+        <span class="meta-pill">~8 min read + interactive SVD lab</span>
+        <span class="meta-pill">Win: Derive β̂<sub>ridge</sub> &amp; explain dⱼ²/(dⱼ²+λ) cold</span>
+      </div>
+    </header>
+
+    <article class="prose">
+      <h2>1. Step-by-Step Derivation of the Ridge Closed Form</h2>
+      <p>
+        Assume predictors <code>X</code> (<code>n × p</code>) are standardized and target <code>y</code> is centered (so <code>β̂₀ = ȳ</code> drops out cleanly). We want to minimize the <a href="../reference/glossary.html#l2-norm">Ridge objective</a>:
+      </p>
+      <div class="math-block">
+        <span class="eq-main">J(β) = (y − Xβ)ᵀ(y − Xβ) + λ βᵀβ &nbsp;&nbsp;(λ &gt; 0)</span>
+        <span class="eq-note">Note: scikit-learn's Ridge uses the same formula (alpha = λ) without dividing by 2n.<a class="cite" href="https://scikit-learn.org/stable/modules/linear_model.html" target="_blank" rel="noopener">[sklearn §1.1.2]</a></span>
+      </div>
+
+      <ol class="step-list">
+        <li>
+          <strong>Expand the quadratic form:</strong><br>
+          <code>J(β) = yᵀy − 2βᵀXᵀy + βᵀXᵀXβ + λβᵀIβ</code>
+          <span class="step-why"><strong>Why:</strong> Since <code>yᵀXβ</code> is a scalar, it equals its transpose <code>βᵀXᵀy</code>, combining the two cross-terms cleanly. Writing <code>λβᵀβ = βᵀ(λI)β</code> prepares us to factor out <code>β</code>.</span>
+        </li>
+        <li>
+          <strong>Differentiate with respect to vector β and set to 0:</strong><br>
+          <code>∇<sub>β</sub>J(β) = −2Xᵀy + 2XᵀXβ + 2λIβ = 0</code>
+          <span class="step-why"><strong>Why this works globally:</strong> Every term is smooth and quadratic. The Hessian is <code>H = 2(XᵀX + λI)</code>, which is <strong>strictly positive definite</strong> for any <code>λ &gt; 0</code> — guaranteeing a <em>single, unique global minimum</em>.</span>
+        </li>
+        <li>
+          <strong>Factor and solve for β̂<sub>ridge</sub>:</strong><br>
+          <code>(XᵀX + λI) β̂<sub>ridge</sub> = Xᵀy &nbsp;⇒&nbsp; β̂<sub>ridge</sub> = (XᵀX + λI)⁻¹ Xᵀy</code>
+          <span class="step-why"><strong>Why the inverse ALWAYS exists:</strong> Even if <code>XᵀX</code> is singular (<code>p &gt; n</code> or duplicate columns) with zero eigenvalues, adding <code>λI</code> shifts every eigenvalue from <code>dⱼ² ≥ 0</code> to <code>dⱼ² + λ &gt; 0</code>. A matrix with all strictly positive eigenvalues is always invertible!</span>
+        </li>
+      </ol>
+
+      <div class="callout-trap">
+        <span class="callout-label">Interview Trap: Do NOT invert (XᵀX + λI) blindly if you kept the intercept column!</span>
+        If your design matrix includes a column of <code>1</code>s for the intercept, replace <code>I</code> with <code>I₀ = diag(0, 1, 1, …, 1)</code> so the intercept receives <code>0</code> penalty. Catching this detail unprompted signals real practical experience.
+      </div>
+
+      <h2>2. The Deeper "Why": SVD &amp; Effective Degrees of Freedom</h2>
+      <p>
+        Saying "Ridge adds <code>λI</code> to make the matrix invertible" is a good mid-level answer. A senior-level answer goes one layer deeper using the <a href="../reference/glossary.html#svd">Singular Value Decomposition (SVD)</a> of centered <code>X = U D Vᵀ</code>:<a class="cite" href="https://web.stanford.edu/~hastie/ElemStatLearn/" target="_blank" rel="noopener">[ESL §3.4.1]</a>
+      </p>
+
+      <section class="accordion" aria-labelledby="svd-proof-head">
+        <h3 id="svd-proof-head">Step-by-step SVD derivation of Ridge fitted values</h3>
+        <details open>
+          <summary>Show how Xβ̂<sub>ridge</sub> simplifies to shrinking principal components</summary>
+          <div class="details-body">
+            <p>Substitute <code>X = U D Vᵀ</code> (where <code>UᵀU = I</code> and <code>VᵀV = VVᵀ = I</code>):</p>
+            <ol>
+              <li><code>XᵀX = V D² Vᵀ</code>, so <code>XᵀX + λI = V (D² + λI) Vᵀ</code>.</li>
+              <li>Invert it easily: <code>(XᵀX + λI)⁻¹ = V (D² + λI)⁻¹ Vᵀ</code>.</li>
+              <li>Multiply by <code>X</code> on the left and <code>Xᵀy</code> on the right:
+                <div class="math-block">
+                  <span class="eq-main">ŷ<sub>ridge</sub> = Xβ̂<sub>ridge</sub> = U D (D² + λI)⁻¹ D Uᵀ y = Σ<sub>j=1..p</sub> uⱼ · [ dⱼ² / (dⱼ² + λ) ] · (uⱼᵀ y)</span>
+                  <span class="eq-note">Compare with OLS (λ = 0): ŷ<sub>OLS</sub> = Σ uⱼ (uⱼᵀ y). Ridge multiplies each PC coordinate by dⱼ² / (dⱼ² + λ).</span>
+                </div>
+              </li>
+            </ol>
+            <p><strong>What this proves:</strong> <code>dⱼ²</code> is the variance of the data along the <code>j</code>-th principal direction. When <code>dⱼ²</code> is tiny (collinear / noisy direction), <code>dⱼ² / (dⱼ² + λ) ≈ 0</code> — Ridge crushes it! When <code>dⱼ²</code> is large (strong variance direction), <code>dⱼ² / (dⱼ² + λ) ≈ 1</code> — Ridge barely touches it! Unlike Principal Components Regression (PCR) which hard-truncates PCs, Ridge smoothly shrinks them.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>Effective Degrees of Freedom df(λ) &amp; Why Ridge Splits Correlated Weights</summary>
+          <div class="details-body">
+            <p><strong><a href="../reference/glossary.html#effective-df">Effective degrees of freedom</a>:</strong> Taking the trace of the Ridge hat matrix <code>H<sub>λ</sub> = X(XᵀX + λI)⁻¹Xᵀ</code> gives:</p>
+            <div class="math-block">
+              <span class="eq-main">df(λ) = tr(H<sub>λ</sub>) = Σ<sub>j=1..p</sub> dⱼ² / (dⱼ² + λ)</span>
+              <span class="eq-note">df(0) = p (full OLS complexity) &nbsp;→&nbsp; df(∞) = 0.</span>
+            </div>
+            <p><strong>Why Ridge shares weight equally across identical features:</strong> Suppose <code>x₁ = x₂</code> and their combined effect must sum to <code>2</code> (<code>β₁ + β₂ = 2</code>). Putting <code>(2, 0)</code> costs penalty <code>2² + 0² = 4</code>, while splitting <code>(1, 1)</code> costs <code>1² + 1² = 2</code> — half the penalty for the exact same RSS! That is why Ridge shrinks correlated predictors <em>together</em>.</p>
+          </div>
+        </details>
+      </section>
+
+      <h2>3. Interactive Lab: Eigenvalues, Condition Number &amp; SVD Shrinkage</h2>
+      <p>
+        Drag correlation <code>r</code> up toward <code>0.99</code> with <code>λ = 0</code> to watch the OLS <a href="../reference/glossary.html#condition-number">condition number</a> explode, then increase <code>λ</code> slightly to watch Ridge selectively crush the noisy minor component while preserving the major signal.
+      </p>
+    </article>
+
+    <section class="sim-card" data-simulator="ridge-svd" aria-labelledby="sim-svd-title">
+      <div class="sim-header">
+        <h3 class="sim-title" id="sim-svd-title">Ridge SVD Shrinkage &amp; Condition Number Lab (2 Standardized Features)</h3>
+      </div>
+      <div class="sim-controls">
+        <div class="control-group">
+          <label for="svd-corr">Feature Correlation r <output data-out="svd-corr">0.950</output></label>
+          <input type="range" id="svd-corr" data-sim="svd-corr" min="0" max="0.995" step="0.005" value="0.95">
+        </div>
+        <div class="control-group">
+          <label for="svd-lambda">Ridge Penalty λ <output data-out="svd-lambda">0.20</output></label>
+          <input type="range" id="svd-lambda" data-sim="svd-lambda" min="0" max="3" step="0.05" value="0.20">
+        </div>
+      </div>
+      <div class="sim-stage">
+        <svg class="sim-svg" viewBox="0 0 320 175" role="img" aria-label="Bar chart of Ridge SVD shrinkage factors along major and minor principal components"></svg>
+        <div class="sim-readout">
+          <dl>
+            <dt>OLS κ(XᵀX):</dt><dd data-out="k-ols">—</dd>
+            <dt>Ridge κ(XᵀX+λI):</dt><dd data-out="k-ridge">—</dd>
+            <dt>Major PC kept:</dt><dd data-out="s1">—</dd>
+            <dt>Minor PC kept:</dt><dd data-out="s2">—</dd>
+            <dt>Effective df(λ):</dt><dd data-out="df">—</dd>
+          </dl>
+          <p class="sim-insight" data-out="insight"></p>
+        </div>
+      </div>
+    </section>
+
+    <article class="prose">
+      <h2>4. Why Ridge Never Produces Exact Zeros</h2>
+      <p>
+        Two complementary reasons — always give <strong>both</strong> in an interview:
+      </p>
+      <ul>
+        <li><strong>Calculus / Gradient reason:</strong> The derivative of <code>λβⱼ²</code> is <code>2λβⱼ</code>. As <code>βⱼ → 0</code>, the penalty pull itself shrinks toward <code>0</code>! Once <code>βⱼ</code> is tiny (say <code>0.001</code>), reducing it further saves almost zero squared penalty (<code>0.001² = 10⁻⁶</code>), so even a whisper of noise in <code>y</code> keeps <code>βⱼ ≠ 0</code>.</li>
+        <li><strong>Geometric reason:</strong> Constraining <code>Σβⱼ² ≤ t</code> forms a smooth circle / hypersphere with no corners on the axes (you'll explore this interactively in <a href="./0003-lasso-regression-l1-geometry-sparsity-and-solvers.html">Lesson 03</a>).</li>
+      </ul>
+    </article>
+
+    <section class="drill-section prose" aria-labelledby="quiz-head-2" data-quiz-group="lesson-02">
+      <h2 id="quiz-head-2">Retrieval Drill (Lesson 02)</h2>
+      <div class="quiz-scorebar">
+        <span data-quiz-score>Score: 0 / 3</span>
+        <button type="button" class="btn-secondary" data-quiz-reset>Reset quiz</button>
+      </div>
+
+      <div class="quiz-card" data-answer="2" data-explain="XᵀX is positive semi-definite (all eigenvalues dⱼ² ≥ 0). Adding λI shifts every eigenvalue to dⱼ² + λ > 0, making the matrix strictly positive definite and always invertible — even when p > n.">
+        <p class="quiz-prompt">1. Why is (XᵀX + λI) guaranteed invertible for any λ &gt; 0, even when p &gt; n?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Adding lambda replaces every zero entry inside X with positive noise</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Adding lambda forces feature columns to become orthogonal before matrix inversion</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Adding lambda shifts all eigenvalues up so none can equal zero</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Adding lambda removes redundant predictor columns until matrix rank equals samples</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="0" data-explain="The SVD shrinkage factor for principal component j is dⱼ² / (dⱼ² + λ). When dⱼ² is small (low-variance / collinear direction), this ratio approaches zero, shrinking noisy directions hardest.">
+        <p class="quiz-prompt">2. In the SVD view of Ridge, which principal component directions are shrunk the most?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Directions with smallest singular values because variance ratio drops sharply</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Directions with largest singular values because high variance inflates penalties</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Directions with medium singular values because ridge peaks near unity</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Directions with every singular value because ridge shrinks all equally</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="3" data-explain="For any fixed sum β₁ + β₂ = c, minimizing β₁² + β₂² yields β₁ = β₂ = c/2. So Ridge splits weight equally across identical (and smoothly across correlated) features.">
+        <p class="quiz-prompt">3. How does Ridge behave on two identical copies of an informative feature?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Keeps the first feature intact while driving the duplicate to zero</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Assigns opposite huge coefficients so their combined prediction cancels noise cleanly</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Drops both identical features completely because collinearity breaks L2 convexity guarantees</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Splits weight evenly between both copies because equal weights minimize squares</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="whiteboard-drill" data-drill-id="wb-02">
+        <span class="drill-tag">Whiteboard Proof Drill · 90 seconds</span>
+        <p><strong>Interviewer asks:</strong> "On the whiteboard, derive β̂<sub>ridge</sub> from the loss function, prove it is a global minimum, and explain what happens computationally when <code>p = 50,000</code> and <code>n = 200</code>."</p>
+        <section class="accordion" aria-label="Model answer for oral drill 2">
+          <details>
+            <summary>Write/speak your derivation first, then check the senior rubric</summary>
+            <div class="details-body">
+              <ul>
+                <li><strong>Derivation:</strong> Expand <code>(y − Xβ)ᵀ(y − Xβ) + λβᵀβ</code>, differentiate to <code>−2Xᵀy + 2(XᵀX + λI)β = 0</code>, solve <code>β̂ = (XᵀX + λI)⁻¹Xᵀy</code>.</li>
+                <li><strong>Global minimum proof:</strong> Hessian <code>2(XᵀX + λI)</code> is strictly positive definite (all eigenvalues <code>dⱼ² + λ &gt; 0</code>).</li>
+                <li><strong>Bonus Senior Trick (Woodbury / Dual Form when <code>p ≫ n</code>):</strong> Inverting a <code>50,000 × 50,000</code> matrix costs <code>O(p³)</code>! Use the push-through / Woodbury identity:
+                  <code>(XᵀX + λIₚ)⁻¹ Xᵀy = Xᵀ (XXᵀ + λIₙ)⁻¹ y</code> — inverting a tiny <code>200 × 200</code> matrix instead (<code>O(n³)</code>)! This is also the exact bridge to Kernel Ridge Regression.</li>
+              </ul>
+            </div>
+          </details>
+        </section>
+        <div class="self-rate">
+          <span>Self-check:</span>
+          <button type="button" class="btn-secondary" data-rate="good">Nailed it</button>
+          <button type="button" class="btn-secondary" data-rate="review">Review again</button>
+          <span data-rate-status></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="source-box prose" aria-labelledby="rec-source-2">
+      <h2 id="rec-source-2">Recommended Primary Source for Lesson 02</h2>
+      <p style="margin:0;">
+        Read <strong>ESL Chapter 3, Section 3.4.1 ("Ridge Regression")</strong> in <a href="https://web.stanford.edu/~hastie/ElemStatLearn/" target="_blank" rel="noopener"><em>The Elements of Statistical Learning</em></a> — equations (3.44)–(3.50) walk directly through the SVD shrinkage and effective degrees of freedom proof.
+      </p>
+    </section>
+
+    <section class="agent-box prose" aria-labelledby="agent-2">
+      <h2 id="agent-2">Have a Question? Ask Your Teacher-Agent</h2>
+      <p style="margin:0;">
+        Want to verify the Woodbury dual identity <code>(XᵀX + λI)⁻¹Xᵀ = Xᵀ(XXᵀ + λI)⁻¹</code> line by line, or see how Ridge compares to PCR in code? Ask your agent!
+      </p>
+    </section>
+
+    <nav class="lesson-pager" aria-label="Lesson navigation">
+      <a href="./0001-why-ols-breaks-and-regularization-basics.html">← Lesson 01: Why OLS Breaks</a>
+      <a href="./0003-lasso-regression-l1-geometry-sparsity-and-solvers.html">Next: Lesson 03 — Lasso Geometry &amp; Solvers →</a>
+    </nav>
+  </main>
+
+  <script src="../assets/simulators.js"></script>
+  <script src="../assets/drills.js"></script>
+</body>
+</html>

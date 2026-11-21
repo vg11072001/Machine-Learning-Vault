@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Ridge &amp; Lasso Mastery — Basic to Advanced ML Interview Course</title>
+  <link rel="stylesheet" href="./assets/course.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="site-nav" aria-label="Course navigation">
+    <div class="site-nav-inner">
+      <a class="site-brand" href="./index.html"><span>L₁ / L₂</span> Ridge &amp; Lasso Course</a>
+      <ul class="nav-links">
+        <li><a href="./index.html" aria-current="page">Roadmap</a></li>
+        <li><a href="./lessons/0001-why-ols-breaks-and-regularization-basics.html">Lessons</a></li>
+        <li><a href="./reference/glossary.html">Glossary</a></li>
+        <li><a href="./reference/interview-cheatsheet.html">Interview Cheat Sheet</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="lesson-header">
+      <p class="lesson-eyebrow">Interactive Teaching Workspace</p>
+      <h1>Ridge &amp; Lasso Regularization: Basic to Advanced</h1>
+      <p class="lesson-subtitle">
+        Every formula derived step-by-step with the <em>how</em> and the <em>why</em>, interactive visual labs, adjacent advanced theory, and timed-style ML interview drills.
+      </p>
+      <div class="meta-strip">
+        <span class="meta-pill">5 Focused Lessons</span>
+        <span class="meta-pill">4 Interactive Simulators</span>
+        <span class="meta-pill">2 Printable References</span>
+        <span class="meta-pill">Retrieval + Whiteboard Drills</span>
+      </div>
+    </header>
+
+    <section class="prose" aria-labelledby="how-to-use">
+      <h2 id="how-to-use">How to study this workspace for long-term retention</h2>
+      <p>
+        Reading formulas creates <strong>fluency strength</strong> (it feels familiar while you look at it), but interviews test <strong>storage strength</strong> (recalling and deriving it cold on a blank whiteboard). Each lesson below is intentionally short, focuses on one mental model, pairs every step with its <em>why</em>, and closes with an immediate retrieval quiz and whiteboard drill.
+      </p>
+      <div class="sidenote">
+        <p class="sidenote-title">Recommended cadence</p>
+        <p style="margin:0;">
+          Do <strong>Lessons 1–2</strong> today, wait 24 hours, then do <strong>Lessons 3–4</strong>. Use <strong>Lesson 5</strong> (Interleaved Interview Drills) 2–3 days later without opening the cheat sheet first.
+        </p>
+      </div>
+    </section>
+
+    <section aria-labelledby="curriculum-heading">
+      <h2 id="curriculum-heading">Curriculum Roadmap</h2>
+      <div class="lesson-grid">
+        <a class="lesson-card" href="./lessons/0001-why-ols-breaks-and-regularization-basics.html">
+          <div>
+            <p class="lesson-eyebrow">Lesson 01 · Foundations</p>
+            <h3>Why OLS Breaks &amp; Regularization Basics</h3>
+            <p>Overfitting, multicollinearity, singular XᵀX, bias-variance tradeoff, why you MUST standardize features, and why β₀ is never penalized.</p>
+          </div>
+          <div class="lesson-card-footer">
+            <span>Start Lesson 01 →</span>
+            <span data-hub-badge="lesson-01">Not started</span>
+          </div>
+        </a>
+
+        <a class="lesson-card" href="./lessons/0002-ridge-regression-l2-math-svd-and-why.html">
+          <div>
+            <p class="lesson-eyebrow">Lesson 02 · Ridge (L₂)</p>
+            <h3>Ridge Math, Closed-Form Derivation &amp; SVD</h3>
+            <p>Step-by-step matrix calculus to (XᵀX + λI)⁻¹Xᵀy, eigenvalue shift, condition number lab, SVD shrinkage, and effective degrees of freedom.</p>
+          </div>
+          <div class="lesson-card-footer">
+            <span>Open Lesson 02 →</span>
+            <span data-hub-badge="lesson-02">Not started</span>
+          </div>
+        </a>
+
+        <a class="lesson-card" href="./lessons/0003-lasso-regression-l1-geometry-sparsity-and-solvers.html">
+          <div>
+            <p class="lesson-eyebrow">Lesson 03 · Lasso (L₁)</p>
+            <h3>Lasso Geometry, Soft-Thresholding &amp; Solvers</h3>
+            <p>Interactive L₁ diamond vs L₂ circle lab, subgradients &amp; soft-thresholding S(z, λ/2), Coordinate Descent &amp; LARS, and Lasso's p &gt; n &amp; correlation traps.</p>
+          </div>
+          <div class="lesson-card-footer">
+            <span>Open Lesson 03 →</span>
+            <span data-hub-badge="lesson-03">Not started</span>
+          </div>
+        </a>
+
+        <a class="lesson-card" href="./lessons/0004-advanced-bayesian-elastic-net-cv-and-gotchas.html">
+          <div>
+            <p class="lesson-eyebrow">Lesson 04 · Advanced &amp; Extras</p>
+            <h3>Bayesian MAP, Elastic Net, CV &amp; Production Traps</h3>
+            <p>Gaussian vs Laplace priors, Elastic Net grouping theorem, CV &amp; 1-SE rule, Pipeline leakage bug, post-selection inference, and AdamW weight decay.</p>
+          </div>
+          <div class="lesson-card-footer">
+            <span>Open Lesson 04 →</span>
+            <span data-hub-badge="lesson-04">Not started</span>
+          </div>
+        </a>
+
+        <a class="lesson-card" href="./lessons/0005-interview-drills-and-whiteboard-scenarios.html">
+          <div>
+            <p class="lesson-eyebrow">Lesson 05 · Mock Interview</p>
+            <h3>Interleaved Interview Drills &amp; Whiteboard Lab</h3>
+            <p>Mixed-topic rapid-fire MCQ gauntlet, 6 senior-level whiteboard/verbalization prompts with grading rubrics, and code-review trap spotting.</p>
+          </div>
+          <div class="lesson-card-footer">
+            <span>Open Lesson 05 →</span>
+            <span data-hub-badge="lesson-05">Not started</span>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section aria-labelledby="ref-heading">
+      <h2 id="ref-heading">Printable Reference Sheets</h2>
+      <div class="lesson-grid">
+        <a class="lesson-card" href="./reference/glossary.html">
+          <div>
+            <p class="lesson-eyebrow">Reference · Nomenclature</p>
+            <h3>Canonical Glossary</h3>
+            <p>Exact definitions of RSS, L₁/L₂ norms, multicollinearity, condition number, subgradient, soft-thresholding, MAP, effective df, and 1-SE rule.</p>
+          </div>
+          <div class="lesson-card-footer">
+            <span>Open Glossary →</span>
+            <span>Print-ready</span>
+          </div>
+        </a>
+
+        <a class="lesson-card" href="./reference/interview-cheatsheet.html">
+          <div>
+            <p class="lesson-eyebrow">Reference · Quick Review</p>
+            <h3>Interview Cheat Sheet</h3>
+            <p>Side-by-side OLS vs Ridge vs Lasso vs Elastic Net matrix, key equations, scikit-learn pitfalls, and rapid-fire interview triggers.</p>
+          </div>
+          <div class="lesson-card-footer">
+            <span>Open Cheat Sheet →</span>
+            <span>Print-ready</span>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="source-box" aria-labelledby="sources-head">
+      <h2 id="sources-head">Primary Sources Grounding This Course</h2>
+      <ul>
+        <li>James, Witten, Hastie, &amp; Tibshirani — <a href="https://www.statlearning.com/" target="_blank" rel="noopener"><em>An Introduction to Statistical Learning (ISLR)</em></a>, Ch. 6.</li>
+        <li>Hastie, Tibshirani, &amp; Friedman — <a href="https://web.stanford.edu/~hastie/ElemStatLearn/" target="_blank" rel="noopener"><em>The Elements of Statistical Learning (ESL)</em></a>, Ch. 3.4 &amp; 3.8.</li>
+        <li>Hoerl &amp; Kennard (1970), Tibshirani (1996), Zou &amp; Hastie (2005), Friedman et al. (2010), and <a href="https://scikit-learn.org/stable/modules/linear_model.html" target="_blank" rel="noopener">scikit-learn Linear Models User Guide</a>.</li>
+      </ul>
+    </section>
+
+    <section class="agent-box" aria-labelledby="agent-head">
+      <h2 id="agent-head">Ask Your Teacher-Agent Anytime</h2>
+      <p style="margin:0;">
+        Stuck on a derivation step, want to try a mock oral interview with live follow-up probing, or want a deeper lesson on a specific sub-topic (like LARS, Selective Inference, or Logistic Regression L₁/L₂)? Ask your agent directly — this workspace grows with your learning records.
+      </p>
+    </section>
+  </main>
+
+  <script src="./assets/drills.js"></script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Lesson 05: Interleaved Interview Drills &amp; Whiteboard Lab</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="site-nav" aria-label="Course navigation">
+    <div class="site-nav-inner">
+      <a class="site-brand" href="../index.html"><span>L₁ / L₂</span> Ridge &amp; Lasso Course</a>
+      <ul class="nav-links">
+        <li><a href="../index.html">Roadmap</a></li>
+        <li><a href="./0005-interview-drills-and-whiteboard-scenarios.html" aria-current="page">Lesson 05</a></li>
+        <li><a href="../reference/glossary.html">Glossary</a></li>
+        <li><a href="../reference/interview-cheatsheet.html">Interview Cheat Sheet</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="lesson-header">
+      <p class="lesson-eyebrow">Lesson 05 of 05 · Interleaved Retrieval &amp; Mock Interview</p>
+      <h1>Interview Drills Gauntlet &amp; Whiteboard Scenarios</h1>
+      <p class="lesson-subtitle">
+        Interleaving mixed topics from memory builds real storage strength. Attempt every drill cold before expanding the rubric — no peeking at the cheat sheet!
+      </p>
+      <div class="meta-strip">
+        <span class="meta-pill">6 Interleaved MCQs</span>
+        <span class="meta-pill">5 Senior Whiteboard / Coding Drills</span>
+        <span class="meta-pill">Self-Graded Rubrics</span>
+      </div>
+    </header>
+
+    <section class="prose" aria-labelledby="gauntlet-head" data-quiz-group="lesson-05">
+      <h2 id="gauntlet-head">Part 1: Rapid-Fire Interleaved Gauntlet</h2>
+      <p>Six mixed questions spanning theory, geometry, library traps, inference, and deep learning. Aim for 6/6 without hints.</p>
+      <div class="quiz-scorebar">
+        <span data-quiz-score>Score: 0 / 6</span>
+        <button type="button" class="btn-secondary" data-quiz-reset>Reset gauntlet</button>
+      </div>
+
+      <div class="quiz-card" data-answer="2" data-explain="When the true data-generating process is dense (many small correlated signals), Ridge usually achieves lower test MSE than Lasso because Lasso's hard selection adds extra variance and discards correlated signal (Cross Validated canonical consensus).">
+        <p class="quiz-prompt">1. You have 120 correlated features where ~90 carry small true effects. Pure test MSE is your only goal. Which model usually wins?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Pure Lasso because hard variable selection always minimizes prediction variance</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Ordinary least squares because unbiased estimators always beat biased estimators</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Ridge regression because dense correlated signals benefit from smooth shrinkage</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Stepwise subset selection because greedy search removes correlated noise cleanly</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="0" data-explain="First, L₂ (β²) and L₁ (|β|) live on completely different mathematical scales. Second, scikit-learn minimizes ‖y−Xβ‖² + α‖β‖₂² for Ridge, but (1/(2n))‖y−Xβ‖² + α‖β‖₁ for Lasso — a 2n factor difference in RSS scaling!">
+        <p class="quiz-prompt">2. In scikit-learn, you fit Ridge(alpha=1.0) and Lasso(alpha=1.0) on n=1,000 rows. Why is that NOT the same regularization strength?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Penalties use different norms and Lasso divides RSS by 2n</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Ridge standardizes predictors automatically while Lasso leaves feature units raw</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Lasso penalizes the intercept term while Ridge ignores intercept weights</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Ridge uses squared error loss while Lasso uses absolute error</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="3" data-explain="Ridge is strictly convex for any λ > 0, so its minimizer is ALWAYS unique (splitting weight equally across duplicate columns). Lasso is convex but NOT strictly convex when X is rank-deficient: any split (αc, (1−α)c) with α ∈ [0, 1] gives identical RSS and identical L₁ norm!">
+        <p class="quiz-prompt">3. When design matrix X has two exact duplicate columns, what holds true about the uniqueness of Ridge vs. Lasso solutions?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Both Ridge and Lasso produce unique solutions whenever lambda exceeds zero</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Neither Ridge nor Lasso produces unique solutions when columns duplicate exactly</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Lasso is strictly unique while Ridge has infinitely many optimal solutions</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Ridge is strictly unique while Lasso has infinitely many optimal solutions</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="1" data-explain="Selecting variables with Lasso and testing them with OLS on the same dataset is post-selection data snooping: OLS p-values assume the feature set was fixed before seeing y, so they become drastically anti-conservative (too many false positives).">
+        <p class="quiz-prompt">4. A teammate runs Lasso to pick 8 features, fits OLS on those 8 features using the same dataset, and reports p &lt; 0.001 as proof of significance. What is wrong?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Lasso shrinks residuals unevenly so ordinary least squares becomes biased</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Selecting and testing on identical data invalidates standard OLS p-values</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Running OLS after Lasso violates convexity and prevents gradient convergence</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Eight predictors always exceed the degrees of freedom after shrinkage</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="2" data-explain="Under vanilla SGD, L₂ penalty gradient λw enters as (1 − ηλ)w, identical to weight decay. Under Adam, λw gets divided by the adaptive per-parameter RMS term √vₜ, distorting shrinkage — which AdamW fixes by decoupling weight decay.">
+        <p class="quiz-prompt">5. In deep learning, when is L₂ regularization mathematically equivalent to Weight Decay?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Always equivalent across every gradient optimizer including Adam and RMSProp</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Never equivalent because neural networks contain nonlinear activation layers everywhere</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Equivalent for plain SGD but diverges under adaptive Adam optimizers</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Equivalent only when every network layer uses batch normalization scaling</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="0" data-explain="Ridge's effective degrees of freedom is df(λ) = Σ dⱼ² / (dⱼ² + λ). At λ = 0 every term is 1 (sum = p); as λ → ∞ every term smoothly decays toward 0.">
+        <p class="quiz-prompt">6. As Ridge penalty λ increases smoothly from 0 toward ∞, how does effective degrees of freedom df(λ) behave?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Decreases monotonically from feature count p down toward zero smoothly</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Increases monotonically from zero up toward sample count n smoothly</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Jumps discontinuously in integer steps whenever a coefficient hits zero</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Remains constant at feature count p because no weights vanish</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="prose" aria-labelledby="wb-head">
+      <h2 id="wb-head">Part 2: Senior Whiteboard &amp; Code-Review Drills</h2>
+      <p>Practice speaking your answer out loud (or sketching on paper) before opening the grading rubric. Mark any shaky drill as <em>Review again</em> for spaced repetition.</p>
+
+      <div class="whiteboard-drill" data-drill-id="mock-01">
+        <span class="drill-tag">Scenario 1 · Code Review Bug Hunt</span>
+        <p><strong>Spot every bug in this candidate's scikit-learn script:</strong></p>
+        <pre><code>scaler = StandardScaler()
+X_s = scaler.fit_transform(X)          # Bug 1?
+model = Lasso(alpha=1.0)
+scores = cross_val_score(model, X_s, y, cv=5)
+# Compare directly with Ridge at "same" regularization:
+ridge = Ridge(alpha=1.0)               # Bug 2?
+# Feature importance from Lasso on correlated ad-spend channels:
+selected = X.columns[model.fit(X_s, y).coef_ != 0]  # Bug 3?</code></pre>
+        <section class="accordion" aria-label="Rubric for Scenario 1">
+          <details>
+            <summary>Reveal all 3 bugs and the production fix</summary>
+            <div class="details-body">
+              <ol>
+                <li><strong>Data leakage:</strong> <code>StandardScaler().fit_transform(X)</code> ran before CV. Fix: put <code>StandardScaler()</code> and the estimator inside a <code>Pipeline</code>.</li>
+                <li><strong>Apples-to-oranges <code>alpha=1.0</code>:</strong> Ridge and Lasso penalties have different norms AND scikit-learn scales Lasso's RSS by <code>1/(2n)</code> while Ridge does not. Fix: tune each model's <code>alpha</code> independently via <code>RidgeCV</code> / <code>LassoCV</code> on a log grid.</li>
+                <li><strong>Fragile feature importance under correlation:</strong> Lasso picks arbitrarily among correlated ad-spend channels (e.g., Facebook vs. Instagram spend) and zeros the rest. Dropping a channel just because Lasso zeroed it can mislead business stakeholders! Fix: inspect correlation clusters, use Elastic Net, or check stability selection across bootstrap resamples.</li>
+              </ol>
+            </div>
+          </details>
+        </section>
+        <div class="self-rate">
+          <span>Self-check:</span>
+          <button type="button" class="btn-secondary" data-rate="good">Nailed it</button>
+          <button type="button" class="btn-secondary" data-rate="review">Review again</button>
+          <span data-rate-status></span>
+        </div>
+      </div>
+
+      <div class="whiteboard-drill" data-drill-id="mock-02">
+        <span class="drill-tag">Scenario 2 · System &amp; Modeling Design</span>
+        <p><strong>Interviewer asks:</strong> "We have 25,000 gene expression features and only 180 patient samples. Genes act in highly correlated biological pathways, and biologists need an interpretable list of active pathways. Would you use OLS, Ridge, Lasso, or Elastic Net — and why?"</p>
+        <section class="accordion" aria-label="Rubric for Scenario 2">
+          <details>
+            <summary>Reveal senior rubric</summary>
+            <div class="details-body">
+              <ul>
+                <li><strong>Eliminate OLS:</strong> <code>p = 25,000 ≫ n = 180</code> → <code>XᵀX</code> is massively rank-deficient; infinitely many 0-training-error solutions.</li>
+                <li><strong>Eliminate pure Ridge:</strong> Solves <code>p ≫ n</code> cleanly (especially via the dual <code>180×180</code> Woodbury trick), <em>but</em> keeps all 25,000 genes non-zero — useless for biologist interpretability.</li>
+                <li><strong>Eliminate pure Lasso:</strong> Two fatal flaws here: (1) capped at selecting at most <code>n = 180</code> genes, and (2) within a correlated biological pathway, Lasso picks one gene arbitrarily and hides its pathway partners.</li>
+                <li><strong>Pick Elastic Net:</strong> Preserves sparsity for interpretability, lifts the <code>n</code>-feature cap, and its L₂ component induces the <em>grouping effect</em> so correlated genes in a pathway enter together. Tune <code>(α, l1_ratio)</code> with nested CV + 1-SE rule inside a standardization <code>Pipeline</code>.</li>
+              </ul>
+            </div>
+          </details>
+        </section>
+        <div class="self-rate">
+          <span>Self-check:</span>
+          <button type="button" class="btn-secondary" data-rate="good">Nailed it</button>
+          <button type="button" class="btn-secondary" data-rate="review">Review again</button>
+          <span data-rate-status></span>
+        </div>
+      </div>
+
+      <div class="whiteboard-drill" data-drill-id="mock-03">
+        <span class="drill-tag">Scenario 3 · "Prove It Three Ways" Classic</span>
+        <p><strong>Interviewer asks:</strong> "Give me THREE distinct explanations of why Lasso yields sparse weights while Ridge does not — one geometric, one calculus/optimization, and one Bayesian."</p>
+        <section class="accordion" aria-label="Rubric for Scenario 3">
+          <details>
+            <summary>Reveal 3-angle rubric</summary>
+            <div class="details-body">
+              <ol>
+                <li><strong>Geometric:</strong> The L₁ constraint region (diamond / cross-polytope) has sharp corners on the coordinate axes; expanding elliptical RSS contours hit a corner first (<code>βⱼ = 0</code>). The L₂ region (hypersphere) is smooth everywhere with no axis corners.</li>
+                <li><strong>Calculus / Optimization:</strong> L₂'s penalty gradient <code>2λβⱼ → 0</code> as <code>βⱼ → 0</code> (diminishing pull near zero), whereas L₁'s subgradient keeps a constant pull of <code>±λ</code> all the way to <code>0</code>, yielding soft-thresholding with dead-zone <code>[−λ/2, +λ/2]</code>.</li>
+                <li><strong>Bayesian MAP:</strong> Ridge is MAP under a zero-mean Gaussian prior (flat, smooth slope 0 at origin); Lasso is MAP under a zero-mean Laplace prior (sharp cusp / spike at 0 that pulls weak posteriors onto the mode at <code>βⱼ = 0</code>).</li>
+              </ol>
+            </div>
+          </details>
+        </section>
+        <div class="self-rate">
+          <span>Self-check:</span>
+          <button type="button" class="btn-secondary" data-rate="good">Nailed it</button>
+          <button type="button" class="btn-secondary" data-rate="review">Review again</button>
+          <span data-rate-status></span>
+        </div>
+      </div>
+
+      <div class="whiteboard-drill" data-drill-id="mock-04">
+        <span class="drill-tag">Scenario 4 · Subtle Math Pushback</span>
+        <p><strong>Interviewer asks:</strong> "Wait — if I run Ridge with a huge λ, say λ = 10⁹, won't the coefficients be so close to 0 that it's basically zero anyway? Why do we care about exact zeros?"</p>
+        <section class="accordion" aria-label="Rubric for Scenario 4">
+          <details>
+            <summary>Reveal senior rubric</summary>
+            <div class="details-body">
+              <ul>
+                <li><strong>Shrinking everything destroys signal:</strong> Pushing λ → 10⁹ crushes <em>true</em> strong signals along with noise (massive underfitting / high bias).</li>
+                <li><strong>Selective zeroing vs. global shrinkage:</strong> Lasso lets you keep strong predictors large (only shifting them by constant <code>λ/2</code>) while setting weak noise predictors to <em>exact zero</em> — reducing serving latency, feature-pipeline maintenance cost, memory footprint, and improving interpretability.</li>
+              </ul>
+            </div>
+          </details>
+        </section>
+        <div class="self-rate">
+          <span>Self-check:</span>
+          <button type="button" class="btn-secondary" data-rate="good">Nailed it</button>
+          <button type="button" class="btn-secondary" data-rate="review">Review again</button>
+          <span data-rate-status></span>
+        </div>
+      </div>
+
+      <div class="whiteboard-drill" data-drill-id="mock-05">
+        <span class="drill-tag">Scenario 5 · Coding From Scratch</span>
+        <p><strong>Interviewer asks:</strong> "Without scikit-learn, how would you write a 10-line NumPy Coordinate Descent loop for Lasso on standardized X and centered y?"</p>
+        <section class="accordion" aria-label="Rubric for Scenario 5">
+          <summary>Sketch the algorithm first, then check the clean NumPy implementation</summary>
+          <div class="details-body">
+<pre><code>import numpy as np
+
+def soft_threshold(z, gamma):
+    return np.sign(z) * np.maximum(np.abs(z) - gamma, 0.0)
+
+def lasso_cd(X, y, lam, n_iter=200):
+    n, p = X.shape
+    beta = np.zeros(p)
+    r = y.copy()                        # maintain residual r = y - X @ beta
+    col_norms = np.sum(X ** 2, axis=0)  # ||x_j||_2^2
+    for _ in range(n_iter):
+        for j in range(p):
+            old_b = beta[j]
+            r += X[:, j] * old_b        # partial residual r^(-j)
+            rho = X[:, j] @ r           # correlation with partial residual
+            beta[j] = soft_threshold(rho, lam / 2.0) / col_norms[j]
+            r -= X[:, j] * beta[j]      # O(n) incremental residual update!
+    return beta</code></pre>
+            <p><strong>Why interviewers love the incremental <code>r</code> update:</strong> Updating <code>r += xⱼβⱼ_old</code> then <code>r -= xⱼβⱼ_new</code> makes each coordinate step <code>O(n)</code> instead of recomputing <code>Xβ</code> in <code>O(np)</code>, reducing a full pass over all features from <code>O(np²)</code> to <code>O(np)</code>!</p>
+          </div>
+        </section>
+        <div class="self-rate">
+          <span>Self-check:</span>
+          <button type="button" class="btn-secondary" data-rate="good">Nailed it</button>
+          <button type="button" class="btn-secondary" data-rate="review">Review again</button>
+          <span data-rate-status></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="source-box prose" aria-labelledby="rec-source-5">
+      <h2 id="rec-source-5">Wisdom &amp; Community Deepening</h2>
+      <p style="margin:0;">
+        Test your intuition against real statisticians on <a href="https://stats.stackexchange.com/questions/tagged/regularization" target="_blank" rel="noopener"><strong>Cross Validated (stats.stackexchange.com)</strong></a> — browse the highest-voted threads tagged <code>regularization</code>, <code>lasso</code>, and <code>ridge-regression</code> and try answering new questions in your head before reading the accepted answer.
+      </p>
+    </section>
+
+    <section class="agent-box prose" aria-labelledby="agent-5">
+      <h2 id="agent-5">Ready for a Live Mock Interview? Ask Your Teacher-Agent!</h2>
+      <p style="margin:0;">
+        Tell your agent: <em>"Run a 5-question live mock interview on Ridge &amp; Lasso and probe my answers like a Senior ML interviewer."</em> Your agent will adapt to any weak spots and log a new learning record to guide your next session.
+      </p>
+    </section>
+
+    <nav class="lesson-pager" aria-label="Lesson navigation">
+      <a href="./0004-advanced-bayesian-elastic-net-cv-and-gotchas.html">← Lesson 04: Bayesian, Elastic Net &amp; CV</a>
+      <a href="../reference/interview-cheatsheet.html">Open Printable Interview Cheat Sheet →</a>
+    </nav>
+  </main>
+
+  <script src="../assets/drills.js"></script>
+</body>
+</html>

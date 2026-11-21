@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Lesson 03: Lasso (L₁) — Geometry, Soft-Thresholding &amp; Solvers</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="site-nav" aria-label="Course navigation">
+    <div class="site-nav-inner">
+      <a class="site-brand" href="../index.html"><span>L₁ / L₂</span> Ridge &amp; Lasso Course</a>
+      <ul class="nav-links">
+        <li><a href="../index.html">Roadmap</a></li>
+        <li><a href="./0003-lasso-regression-l1-geometry-sparsity-and-solvers.html" aria-current="page">Lesson 03</a></li>
+        <li><a href="../reference/glossary.html">Glossary</a></li>
+        <li><a href="../reference/interview-cheatsheet.html">Interview Cheat Sheet</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="lesson-header">
+      <p class="lesson-eyebrow">Lesson 03 of 05 · Lasso Regression (L₁)</p>
+      <h1>Lasso (L₁): Why It Produces Exact Zeros, How It Solves, and Where It Fails</h1>
+      <p class="lesson-subtitle">
+        Understand sparsity both geometrically (the diamond) and algebraically (subgradients &amp; soft-thresholding), see how Coordinate Descent actually solves it, and learn the two failure modes interviewers probe.
+      </p>
+      <div class="meta-strip">
+        <span class="meta-pill">~9 min read + 2 interactive labs</span>
+        <span class="meta-pill">Win: Prove L₁ sparsity two ways &amp; explain Coordinate Descent</span>
+      </div>
+    </header>
+
+    <article class="prose">
+      <h2>1. The Constrained View: Why L₁ Creates Exact Zeros</h2>
+      <p>
+        By Lagrange duality, minimizing the penalized <a href="../reference/glossary.html#l1-norm">Lasso</a> objective <code>RSS(β) + λ Σ|βⱼ|</code> is equivalent to minimizing <code>RSS(β)</code> subject to a budget constraint <code>Σ|βⱼ| ≤ t</code> (smaller <code>t</code> ↔ larger <code>λ</code>).<a class="cite" href="https://doi.org/10.1111/j.2517-6161.1996.tb02080.x" target="_blank" rel="noopener">[Tibshirani 1996]</a>
+      </p>
+      <p>
+        In 2D, constant-RSS curves are ellipses centered at <code>β̂<sub>OLS</sub></code>. As you expand the ellipse outward from <code>β̂<sub>OLS</sub></code>, the very first point where it touches the feasible constraint region is the regularized optimum <code>β̂*</code>:
+      </p>
+      <ul>
+        <li><strong>L₂ Circle (Ridge):</strong> Smoothly curved everywhere with no corners on the axes → the ellipse touches a curved side where both <code>β₁ ≠ 0</code> and <code>β₂ ≠ 0</code>.</li>
+        <li><strong>L₁ Diamond (Lasso):</strong> Sharp corners stick out <em>directly along the coordinate axes</em> → the expanding ellipse is overwhelmingly likely to hit a corner first, setting <code>β₁ = 0</code> (or <code>β₂ = 0</code>) <strong>exactly</strong>! In higher dimensions, the diamond is a cross-polytope with exponentially many edges and corners sitting on sparse subspaces.</li>
+      </ul>
+    </article>
+
+    <section class="sim-card" data-simulator="geometry" aria-labelledby="sim-geom-title">
+      <div class="sim-header">
+        <h3 class="sim-title" id="sim-geom-title">Interactive Lab A: L₁ Diamond vs. L₂ Circle vs. Elastic Net Geometry</h3>
+      </div>
+      <div class="radio-strip" role="radiogroup" aria-label="Penalty geometry">
+        <label><input type="radio" name="geom-mode" value="lasso" checked> Lasso (L₁ Diamond)</label>
+        <label><input type="radio" name="geom-mode" value="ridge"> Ridge (L₂ Circle)</label>
+        <label><input type="radio" name="geom-mode" value="elastic"> Elastic Net (Hybrid)</label>
+      </div>
+      <div class="sim-controls">
+        <div class="control-group">
+          <label for="geom-budget">Constraint Budget t (smaller = stronger λ) <output data-out="budget">1.15</output></label>
+          <input type="range" id="geom-budget" data-sim="budget" min="0.4" max="2.8" step="0.05" value="1.15">
+        </div>
+        <div class="control-group">
+          <label for="geom-corr">Predictor Correlation ρ (tilts/stretches ellipse) <output data-out="corr">0.45</output></label>
+          <input type="range" id="geom-corr" data-sim="corr" min="-0.85" max="0.85" step="0.05" value="0.45">
+        </div>
+      </div>
+      <div class="sim-stage">
+        <svg class="sim-svg" viewBox="0 0 320 320" role="img" aria-label="2D contour plot showing OLS ellipses intersecting the L1, L2, or Elastic Net constraint region"></svg>
+        <div class="sim-readout">
+          <dl>
+            <dt>Optimal β̂₁*:</dt><dd data-out="b1">—</dd>
+            <dt>Optimal β̂₂*:</dt><dd data-out="b2">—</dd>
+            <dt>Penalty Norm:</dt><dd data-out="norm">—</dd>
+            <dt>Exact Sparsity?</dt><dd data-out="zero">—</dd>
+          </dl>
+          <p class="sim-insight" data-out="insight"></p>
+        </div>
+      </div>
+    </section>
+
+    <article class="prose">
+      <h2>2. The Algebraic Proof: Subgradients &amp; Soft-Thresholding</h2>
+      <p>
+        A diamond drawing is great intuition, but interviewers often ask: <em>"Prove it with calculus — wait, |β| isn't differentiable at 0, so how do you even differentiate it?"</em>
+      </p>
+      <p>
+        Use the <a href="../reference/glossary.html#subgradient"><strong>subdifferential</strong></a>! For a convex function with a kink at 0, the subdifferential of <code>|β|</code> is:
+      </p>
+      <div class="math-block">
+        <span class="eq-main">∂|β| = { +1 if β &gt; 0, &nbsp; −1 if β &lt; 0, &nbsp; [−1, +1] if β = 0 }</span>
+        <span class="eq-note">A convex function attains its global minimum at β* if and only if 0 ∈ ∂J(β*).</span>
+      </div>
+
+      <ol class="step-list">
+        <li>
+          <strong>Take the orthonormal case (<code>XᵀX = I</code>) so every coordinate decouples:</strong><br>
+          Minimizing <code>‖y − Xβ‖₂² + λ‖β‖₁</code> decouples into <code>p</code> independent 1D problems: <code>min<sub>βⱼ</sub> (βⱼ − zⱼ)² + λ|βⱼ|</code>, where <code>zⱼ = xⱼᵀy = β̂<sub>OLS,j</sub></code>.
+          <span class="step-why"><strong>Why this simplification matters:</strong> Every step of Coordinate Descent on <em>general</em> (correlated) <code>X</code> reduces to this exact 1D problem!</span>
+        </li>
+        <li>
+          <strong>Set <code>0 ∈ ∂[ (βⱼ − zⱼ)² + λ|βⱼ| ] = 2(βⱼ − zⱼ) + λ · ∂|βⱼ|</code>:</strong>
+          <ul>
+            <li>If <code>βⱼ &gt; 0</code>: <code>2(βⱼ − zⱼ) + λ = 0 ⇒ βⱼ = zⱼ − λ/2</code> (valid only when <code>zⱼ &gt; λ/2</code>).</li>
+            <li>If <code>βⱼ &lt; 0</code>: <code>2(βⱼ − zⱼ) − λ = 0 ⇒ βⱼ = zⱼ + λ/2</code> (valid only when <code>zⱼ &lt; −λ/2</code>).</li>
+            <li>If <code>βⱼ = 0</code>: we need <code>0 ∈ −2zⱼ + [−λ, +λ]</code>, i.e. <code>|zⱼ| ≤ λ/2</code>!</li>
+          </ul>
+          <span class="step-why"><strong>Why exact zero happens algebraically:</strong> Unlike Ridge's derivative <code>2λβⱼ</code> (which fades to 0 near the origin), Lasso exerts a <strong>constant pull of ±λ</strong> right down to 0, creating a dead-zone <code>[−λ/2, +λ/2]</code> where weak signals snap flat to 0.</span>
+        </li>
+        <li>
+          <strong>Package into the <a href="../reference/glossary.html#soft-thresholding">Soft-Thresholding Operator</a>:</strong>
+          <div class="math-block">
+            <span class="eq-main">β̂<sub>lasso,j</sub> = S(zⱼ, λ/2) = sign(zⱼ) · max(|zⱼ| − λ/2, 0)</span>
+            <span class="eq-note">Compare with orthonormal Ridge: β̂<sub>ridge,j</sub> = zⱼ / (1 + λ) (proportional scaling, never hits 0).</span>
+          </div>
+        </li>
+      </ol>
+    </article>
+
+    <section class="sim-card" data-simulator="soft-threshold" aria-labelledby="sim-st-title">
+      <div class="sim-header">
+        <h3 class="sim-title" id="sim-st-title">Interactive Lab B: Soft-Thresholding (Lasso) vs. Proportional Shrinkage (Ridge)</h3>
+      </div>
+      <div class="sim-controls">
+        <div class="control-group">
+          <label for="st-lambda">Penalty λ (dead-zone half-width = λ/2) <output data-out="st-lambda">1.40</output></label>
+          <input type="range" id="st-lambda" data-sim="st-lambda" min="0" max="4" step="0.1" value="1.4">
+        </div>
+        <div class="control-group">
+          <label for="st-z">OLS Signal z = β̂<sub>OLS</sub> <output data-out="st-z">0.50</output></label>
+          <input type="range" id="st-z" data-sim="st-z" min="-3.5" max="3.5" step="0.1" value="0.5">
+        </div>
+      </div>
+      <div class="sim-stage">
+        <svg class="sim-svg" viewBox="0 0 320 250" role="img" aria-label="Plot comparing OLS identity line, Ridge proportional shrinkage, and Lasso soft-thresholding dead-zone"></svg>
+        <div class="sim-readout">
+          <dl>
+            <dt>Ridge β̂:</dt><dd data-out="st-ridge">—</dd>
+            <dt>Lasso β̂:</dt><dd data-out="st-lasso">—</dd>
+          </dl>
+          <p class="sim-insight" data-out="insight"></p>
+        </div>
+      </div>
+    </section>
+
+    <article class="prose">
+      <h2>3. How Lasso Is Actually Solved (No General Closed Form!)</h2>
+      <p>
+        When predictors are correlated (<code>XᵀX ≠ I</code>), coordinates couple together and there is <strong>no closed-form formula</strong> because of the non-differentiable kinks at <code>βⱼ = 0</code>. How do modern libraries like <code>glmnet</code> and <code>scikit-learn</code> solve it so fast?<a class="cite" href="https://doi.org/10.18637/jss.v033.i01" target="_blank" rel="noopener">[Friedman et al. 2010]</a>
+      </p>
+
+      <section class="accordion" aria-labelledby="solvers-head">
+        <h3 id="solvers-head">Compare the 3 Lasso optimization algorithms</h3>
+        <details open>
+          <summary>1. Cyclical Coordinate Descent (Default in scikit-learn &amp; glmnet)</summary>
+          <div class="details-body">
+            <p><strong>How:</strong> Hold all weights except <code>βⱼ</code> fixed, compute the partial residual <code>r<sup>(−j)</sup> = y − Σ<sub>k≠j</sub> xₖβₖ</code>, and update <code>βⱼ ← S(xⱼᵀr<sup>(−j)</sup>, λ/2) / ‖xⱼ‖₂²</code>. Cycle through <code>j = 1…p</code> until convergence.</p>
+            <p><strong>Why it converges to the global minimum:</strong> Coordinate descent can fail on general non-smooth functions, <em>but</em> Tseng's theorem guarantees global convergence whenever the non-smooth part is <strong>separable</strong> across coordinates (<code>Σ|βⱼ|</code> splits cleanly by coordinate!). Warm-starting across a grid of <code>λ</code> values from large to small makes it blazingly fast.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>2. Proximal Gradient Descent (ISTA / FISTA)</summary>
+          <div class="details-body">
+            <p><strong>How:</strong> Take an ordinary gradient step on the smooth RSS part (<code>β − η∇RSS(β)</code>), then apply soft-thresholding <code>S(·, ηλ)</code> to every coordinate.</p>
+            <p><strong>Why not vanilla Gradient Descent?</strong> Vanilla GD steps back and forth across the kink at <code>0</code> forever, producing <code>0.00013</code>, <code>−0.00009</code> — never exact zero. The proximal step snaps anything near zero cleanly to <code>0</code>.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>3. LARS (Least Angle Regression)</summary>
+          <div class="details-body">
+            <p><strong>How:</strong> Starts with all <code>β = 0</code>, finds the predictor most correlated with residual <code>y</code>, moves along it until another predictor ties in correlation, then moves along their equiangular direction — computing the <em>entire</em> exact piecewise-linear path for all <code>λ</code> values in <code>O(p³)</code> (same order as one OLS fit).<a class="cite" href="https://web.stanford.edu/~hastie/ElemStatLearn/" target="_blank" rel="noopener">[ESL §3.4.4]</a></p>
+            <p><strong>Trade-off:</strong> Great when <code>p</code> is moderate and you want the exact path, but Coordinate Descent beats it on huge sparse datasets.</p>
+          </div>
+        </details>
+      </section>
+
+      <h2>4. Lasso's Three Famous Limitations (Bridge to Lesson 04)</h2>
+      <div class="callout-trap">
+        <span class="callout-label">Memorize these — they are the #1 lead-in to Elastic Net questions!</span>
+        <ol style="margin-bottom:0;">
+          <li><strong>Correlated feature instability:</strong> If <code>x₁</code> and <code>x₂</code> are highly correlated, Lasso arbitrarily picks one and zeros out the other — and a tiny resample can flip which one wins! (Because <code>|2| + |0| = |1| + |1| = 2</code>, Lasso has no strict preference for sharing weight.)</li>
+          <li><strong>The <code>p &gt; n</code> saturation cap:</strong> When features exceed samples (<code>p &gt; n</code>), pure Lasso can select <strong>at most <code>n</code> variables</strong> before saturating.<a class="cite" href="https://doi.org/10.1111/j.1467-9868.2005.00503.x" target="_blank" rel="noopener">[Zou &amp; Hastie 2005]</a></li>
+          <li><strong>Shrinkage bias on large true coefficients:</strong> Even for huge, undeniably real features, Lasso still subtracts <code>λ/2</code> — creating bias (motivation for <em>Relaxed Lasso</em> or <em>Adaptive Lasso</em>).</li>
+        </ol>
+      </div>
+    </article>
+
+    <section class="drill-section prose" aria-labelledby="quiz-head-3" data-quiz-group="lesson-03">
+      <h2 id="quiz-head-3">Retrieval Drill (Lesson 03)</h2>
+      <div class="quiz-scorebar">
+        <span data-quiz-score>Score: 0 / 3</span>
+        <button type="button" class="btn-secondary" data-quiz-reset>Reset quiz</button>
+      </div>
+
+      <div class="quiz-card" data-answer="1" data-explain="The L₁ subgradient maintains constant magnitude λ all the way to βⱼ = 0 (creating a dead-zone where weak coefficients snap to 0), whereas L₂'s derivative 2λβⱼ vanishes as βⱼ → 0.">
+        <p class="quiz-prompt">1. Algebraically, why does Lasso drive small coefficients to exact zero while Ridge does not?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Lasso penalty grows quadratically near zero while ridge gradient stays constant</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Lasso subgradient keeps constant pull at zero while ridge pull vanishes</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Lasso objective becomes non convex near zero while ridge stays smooth</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Lasso normal equations invert singular matrices while ridge adds diagonal terms</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="0" data-explain="Soft-thresholding outputs sign(z)·max(|z| − λ/2, 0). Once |z| > λ/2, it shifts z toward zero by a constant offset λ/2 — unlike Ridge, which scales proportionally by 1/(1+λ).">
+        <p class="quiz-prompt">2. In an orthonormal design, what does soft-thresholding S(z, λ/2) do when |z| &gt; λ/2?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Shifts estimate toward zero by constant amount regardless of coefficient size</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Scales estimate toward zero by fixed percentage proportional to coefficient size</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Leaves estimate completely unchanged once signal strength exceeds the lambda threshold</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Flips estimate sign across zero whenever residual correlation changes during descent</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="2" data-explain="From convex duality / KKT conditions, Lasso can activate at most min(n, p) variables (at most n − 1 if centered). With n = 60 and p = 500, Lasso saturates at ≤ 60 selected predictors — Elastic Net removes this ceiling.">
+        <p class="quiz-prompt">3. What happens when you fit pure Lasso with p = 500 features and n = 60 samples?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Lasso fails completely because coordinate descent requires full rank design matrices</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Lasso keeps all correlated groups evenly split across every redundant predictor</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Lasso selects at most sixty predictors before the active set saturates</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Lasso converges automatically to ordinary least squares with zero shrinkage bias</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="whiteboard-drill" data-drill-id="wb-03">
+        <span class="drill-tag">Interview Oral Drill · 60 seconds</span>
+        <p><strong>Interviewer asks:</strong> "Why can't we just use the L₀ norm (counting non-zero weights) for feature selection instead of L₁? And why does Coordinate Descent work on L₁ even though |β| isn't differentiable?"</p>
+        <section class="accordion" aria-label="Model answer for oral drill 3">
+          <details>
+            <summary>Speak your answer aloud first, then check the grading rubric</summary>
+            <div class="details-body">
+              <ul>
+                <li><strong>Why not L₀:</strong> Minimizing <code>RSS + λ‖β‖₀</code> is non-convex and combinatorial (NP-hard — testing <code>2ᵖ</code> subsets). L₁ is the <em>tightest convex relaxation</em> of L₀, making global optimization tractable in polynomial time.</li>
+                <li><strong>Why Coordinate Descent works:</strong> Because the non-smooth penalty <code>Σ|βⱼ|</code> is <em>separable</em> across coordinates, optimizing one <code>βⱼ</code> at a time has an exact closed-form subgradient update (soft-thresholding) and is guaranteed to reach the global optimum of the convex objective.</li>
+              </ul>
+            </div>
+          </details>
+        </section>
+        <div class="self-rate">
+          <span>Self-check:</span>
+          <button type="button" class="btn-secondary" data-rate="good">Nailed it</button>
+          <button type="button" class="btn-secondary" data-rate="review">Review again</button>
+          <span data-rate-status></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="source-box prose" aria-labelledby="rec-source-3">
+      <h2 id="rec-source-3">Recommended Primary Source for Lesson 03</h2>
+      <p style="margin:0;">
+        Read Robert Tibshirani's classic 1996 paper <a href="https://doi.org/10.1111/j.2517-6161.1996.tb02080.x" target="_blank" rel="noopener"><em>"Regression Shrinkage and Selection via the Lasso"</em></a> (Sections 1–2) alongside Friedman, Hastie, &amp; Tibshirani (2010), <a href="https://doi.org/10.18637/jss.v033.i01" target="_blank" rel="noopener"><em>"Regularization Paths for Generalized Linear Models via Coordinate Descent"</em></a> (Section 2).
+      </p>
+    </section>
+
+    <section class="agent-box prose" aria-labelledby="agent-3">
+      <h2 id="agent-3">Have a Question? Ask Your Teacher-Agent</h2>
+      <p style="margin:0;">
+        Want to hand-trace 2 iterations of Coordinate Descent on a tiny 3-row dataset, or see the exact KKT proof of why Lasso caps out at <code>n</code> features? Ask your agent!
+      </p>
+    </section>
+
+    <nav class="lesson-pager" aria-label="Lesson navigation">
+      <a href="./0002-ridge-regression-l2-math-svd-and-why.html">← Lesson 02: Ridge Math &amp; SVD</a>
+      <a href="./0004-advanced-bayesian-elastic-net-cv-and-gotchas.html">Next: Lesson 04 — Bayesian, Elastic Net &amp; CV →</a>
+    </nav>
+  </main>
+
+  <script src="../assets/simulators.js"></script>
+  <script src="../assets/drills.js"></script>
+</body>
+</html>

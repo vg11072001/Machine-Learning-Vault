@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Interview Cheat Sheet — Ridge, Lasso &amp; Elastic Net</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="site-nav" aria-label="Course navigation">
+    <div class="site-nav-inner">
+      <a class="site-brand" href="../index.html"><span>L₁ / L₂</span> Ridge &amp; Lasso Course</a>
+      <ul class="nav-links">
+        <li><a href="../index.html">Roadmap</a></li>
+        <li><a href="../lessons/0001-why-ols-breaks-and-regularization-basics.html">Lessons</a></li>
+        <li><a href="./glossary.html">Glossary</a></li>
+        <li><a href="./interview-cheatsheet.html" aria-current="page">Interview Cheat Sheet</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="lesson-header">
+      <p class="lesson-eyebrow">Reference · High-Density Summary</p>
+      <h1>ML Interview Cheat Sheet: Ridge vs. Lasso vs. Elastic Net</h1>
+      <p class="lesson-subtitle">
+        Designed for a 3-minute pre-interview review or clean printout. For derivations and proofs, jump to the linked lessons.
+      </p>
+    </header>
+
+    <section aria-labelledby="compare-head">
+      <h2 id="compare-head">Master Comparison Matrix</h2>
+      <div tabindex="0" role="region" aria-labelledby="compare-cap" class="table-wrapper">
+        <table style="--label-2:'OLS'; --label-3:'Ridge (L₂)'; --label-4:'Lasso (L₁)'; --label-5:'Elastic Net';">
+          <caption id="compare-cap">Comparison of OLS, Ridge, Lasso, and Elastic Net across math, geometry, optimization, and behavior</caption>
+          <thead>
+            <tr>
+              <th scope="col">Dimension</th>
+              <th scope="col">OLS</th>
+              <th scope="col">Ridge (L₂)</th>
+              <th scope="col">Lasso (L₁)</th>
+              <th scope="col">Elastic Net</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Penalty Term</th>
+              <td>None (<code>λ = 0</code>)</td>
+              <td><code>λ Σ βⱼ²</code></td>
+              <td><code>λ Σ |βⱼ|</code></td>
+              <td><code>λ[α Σ|βⱼ| + ½(1−α) Σβⱼ²]</code></td>
+            </tr>
+            <tr>
+              <th scope="row">Constraint Shape (2D)</th>
+              <td>Unconstrained</td>
+              <td>Circle / hypersphere (smooth)</td>
+              <td>Diamond / cross-polytope (corners on axes)</td>
+              <td>Rounded diamond (corners + curved sides)</td>
+            </tr>
+            <tr>
+              <th scope="row">Closed-Form Solution?</th>
+              <td><code>(XᵀX)⁻¹Xᵀy</code> (fails if singular)</td>
+              <td>Yes: <code>(XᵀX + λI)⁻¹Xᵀy</code> (always exists for <code>λ &gt; 0</code>)</td>
+              <td>No (general X); soft-thresholding if X orthonormal</td>
+              <td>No (general X); Coordinate Descent</td>
+            </tr>
+            <tr>
+              <th scope="row">Exact Sparsity?</th>
+              <td>No</td>
+              <td>No (asymptotic shrinkage only)</td>
+              <td>Yes (automatic feature selection)</td>
+              <td>Yes (with grouping)</td>
+            </tr>
+            <tr>
+              <th scope="row">Correlated Features</th>
+              <td>Weights explode with opposite signs</td>
+              <td>Shrinks correlated weights smoothly together</td>
+              <td>Picks one arbitrarily, zeros the rest (unstable)</td>
+              <td>Grouping effect: selects or drops correlated group together</td>
+            </tr>
+            <tr>
+              <th scope="row">When p &gt; n</th>
+              <td>Rank-deficient; infinite solutions</td>
+              <td>Unique solution; keeps all p features</td>
+              <td>Selects at most <code>n</code> features (saturated)</td>
+              <td>Can select more than <code>n</code> features</td>
+            </tr>
+            <tr>
+              <th scope="row">Bayesian MAP Prior</th>
+              <td>Flat / uninformative</td>
+              <td>Zero-mean Gaussian <code>N(0, τ²)</code></td>
+              <td>Zero-mean Laplace <code>Laplace(0, b)</code></td>
+              <td>Gaussian × Laplace product prior</td>
+            </tr>
+            <tr>
+              <th scope="row">Best Use Case</th>
+              <td><code>n ≫ p</code>, orthogonal features, unbiased inference</td>
+              <td>Many small-to-medium true effects; collinearity</td>
+              <td>True model is sparse (few strong drivers)</td>
+              <td>High-dim (<code>p &gt; n</code>) with correlated feature groups</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="prose" aria-labelledby="must-know-steps">
+      <h2 id="must-know-steps">Non-Negotiable Rules &amp; Why They Matter</h2>
+      <ol class="step-list">
+        <li>
+          <strong>Always standardize predictors before fitting</strong> (<code>x̃ⱼ = (xⱼ − μⱼ) / sⱼ</code>).
+          <span class="step-why"><strong>Why:</strong> Doubling a feature's unit halves its βⱼ, changing Ridge's penalty by 4× and Lasso's by 2×. Without standardization, units dictate shrinkage.</span>
+        </li>
+        <li>
+          <strong>Never penalize the intercept β₀</strong> (or center <code>y</code> and <code>X</code> so <code>β̂₀ = ȳ</code>).
+          <span class="step-why"><strong>Why:</strong> Shrinking β₀ shifts predictions toward zero instead of <code>ȳ</code>, making predictions depend on the arbitrary origin of <code>y</code>.</span>
+        </li>
+        <li>
+          <strong>Standardize INSIDE each CV fold using a <code>Pipeline</code>.</strong>
+          <span class="step-why"><strong>Why:</strong> Fitting <code>StandardScaler</code> on the full dataset leaks validation mean/variance into training and optimistically biases CV error.</span>
+        </li>
+        <li>
+          <strong>Never compare raw λ across Ridge and Lasso (or across libraries).</strong>
+          <span class="step-why"><strong>Why:</strong> L₂ scales quadratically while L₁ scales linearly; plus <code>scikit-learn</code> scales Lasso's RSS by <code>1/(2n)</code> but Ridge's RSS without <code>1/(2n)</code>.</span>
+        </li>
+        <li>
+          <strong>Prefer the 1-SE rule when CV curves are flat near the minimum.</strong>
+          <span class="step-why"><strong>Why:</strong> Picks the simplest (highest-λ) model statistically indistinguishable from the CV minimum, improving generalization and interpretability.</span>
+        </li>
+      </ol>
+    </section>
+
+    <section class="prose" aria-labelledby="rapid-triggers">
+      <h2 id="rapid-triggers">10 Classic Interview Triggers → 1-Sentence Punchlines</h2>
+      <ul>
+        <li><strong>"Why doesn't Ridge produce zeros?"</strong> — The L₂ gradient <code>2λβⱼ</code> shrinks to 0 as <code>βⱼ → 0</code> (weakening pull near zero), and geometrically the smooth sphere has no axis corners.</li>
+        <li><strong>"Why does Lasso produce zeros?"</strong> — The L₁ subgradient maintains constant magnitude <code>λ</code> all the way to <code>0</code> (soft-thresholding dead-zone <code>|z| ≤ λ/2</code>), and geometrically the diamond's corners sit on the axes.</li>
+        <li><strong>"Why does Ridge shrink low-variance directions more?"</strong> — By SVD, Ridge multiplies PC <code>j</code> by <code>dⱼ² / (dⱼ² + λ)</code>; when <code>dⱼ² ≪ λ</code>, the factor approaches 0, crushing noisy collinear directions.</li>
+        <li><strong>"Why can't you use ordinary gradient descent on Lasso?"</strong> — <code>|βⱼ|</code> has a kink at 0 (non-differentiable), so naive GD oscillates around 0 without hitting exact zeros; use Coordinate Descent or proximal gradient (ISTA/FISTA).</li>
+        <li><strong>"Why does Lasso cap out at n features when p &gt; n?"</strong> — From convex duality / KKT conditions, at most <code>n</code> linearly independent active columns can satisfy the optimality equations simultaneously.</li>
+        <li><strong>"When does Ridge beat Lasso for pure prediction?"</strong> — When the true signal is dense (many small correlated predictors); Lasso's hard selection adds extra variance and drops useful correlated signal.</li>
+        <li><strong>"Why isn't L₀ used directly?"</strong> — Counting non-zeros <code>‖β‖₀</code> is non-convex and NP-hard (<code>2ᵖ</code> subsets); L₁ is the tightest convex relaxation of L₀.</li>
+        <li><strong>"Is Ridge/Lasso solution unique?"</strong> — Ridge is <em>strictly</em> convex for <code>λ &gt; 0</code> → always unique. Lasso is convex but not strictly convex when <code>X</code> is rank-deficient (e.g. duplicated columns or <code>p &gt; n</code>) → multiple optima can share the same fitted values <code>Xβ̂</code>.</li>
+        <li><strong>"Can I get p-values by running OLS on Lasso-selected features?"</strong> — No! Selecting and testing on the same data creates selection bias (artificially tiny p-values). Use sample splitting or selective inference.</li>
+        <li><strong>"Is L₂ regularization identical to Weight Decay in neural nets?"</strong> — Identical for vanilla SGD, <em>not</em> identical for adaptive optimizers like Adam (where L₂ gets scaled by adaptive learning rates — hence decoupled weight decay in AdamW).</li>
+      </ul>
+    </section>
+
+    <nav class="lesson-pager" aria-label="Reference navigation">
+      <a href="./glossary.html">← Canonical Glossary</a>
+      <a href="../lessons/0005-interview-drills-and-whiteboard-scenarios.html">Practice Interview Drills →</a>
+    </nav>
+  </main>
+</body>
+</html>

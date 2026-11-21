@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Lesson 04: Advanced Topics — Bayesian MAP, Elastic Net, CV &amp; Gotchas</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="site-nav" aria-label="Course navigation">
+    <div class="site-nav-inner">
+      <a class="site-brand" href="../index.html"><span>L₁ / L₂</span> Ridge &amp; Lasso Course</a>
+      <ul class="nav-links">
+        <li><a href="../index.html">Roadmap</a></li>
+        <li><a href="./0004-advanced-bayesian-elastic-net-cv-and-gotchas.html" aria-current="page">Lesson 04</a></li>
+        <li><a href="../reference/glossary.html">Glossary</a></li>
+        <li><a href="../reference/interview-cheatsheet.html">Interview Cheat Sheet</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="lesson-header">
+      <p class="lesson-eyebrow">Lesson 04 of 05 · Advanced &amp; Adjacent Topics</p>
+      <h1>Bayesian Priors, Elastic Net, Cross-Validation &amp; Production Traps</h1>
+      <p class="lesson-subtitle">
+        This is where good candidates become "strong hire": probabilistic MAP proofs, Elastic Net's grouping theorem, CV leakage traps, post-selection inference, and the bridge to AdamW in deep learning.
+      </p>
+      <div class="meta-strip">
+        <span class="meta-pill">~10 min read + Bayesian prior lab</span>
+        <span class="meta-pill">Win: Master every advanced follow-up interviewers love</span>
+      </div>
+    </header>
+
+    <article class="prose">
+      <h2>1. The Bayesian View: Ridge &amp; Lasso Are MAP Estimators</h2>
+      <p>
+        Suppose targets follow a Gaussian noise model <code>y | X, β ~ N(Xβ, σ²I)</code>, and we place a prior <code>p(β)</code> on the coefficients. By Bayes' rule, finding the <a href="../reference/glossary.html#map-prior">Maximum A Posteriori (MAP)</a> mode maximizes <code>log p(y | X, β) + log p(β)</code>, which is equivalent to minimizing the <em>negative</em> log posterior:<a class="cite" href="https://doi.org/10.1111/j.2517-6161.1996.tb02080.x" target="_blank" rel="noopener">[Tibshirani 1996]</a>
+      </p>
+      <ol class="step-list">
+        <li>
+          <strong>Gaussian prior <code>βⱼ ~ N(0, τ²)</code> ⇒ Ridge (L₂):</strong><br>
+          <code>−log p(y|X,β) − log p(β) = (1 / 2σ²)‖y − Xβ‖₂² + (1 / 2τ²) Σ βⱼ² + const</code>
+          <span class="step-why"><strong>Why this connects λ to beliefs:</strong> Multiplying by <code>2σ²</code> recovers Ridge with <code>λ = σ² / τ²</code>. Stronger belief that weights are small (smaller prior variance <code>τ²</code>) OR noisier data (larger <code>σ²</code>) means a <em>larger</em> <code>λ</code>!</span>
+        </li>
+        <li>
+          <strong>Laplace (Double-Exponential) prior <code>βⱼ ~ Laplace(0, b)</code> ⇒ Lasso (L₁):</strong><br>
+          <code>p(βⱼ) = (1 / 2b) exp(−|βⱼ| / b) &nbsp;⇒&nbsp; −log p(β) = (1 / b) Σ |βⱼ| + const</code>
+          <span class="step-why"><strong>Why this yields sparsity &amp; heavier tails:</strong> Multiplying by <code>2σ²</code> recovers Lasso with <code>λ = 2σ² / b</code>. Compared to a Gaussian of equal variance, a Laplace prior has a sharp cusp at <code>0</code> (concentrating mass at exact zero) <em>and</em> heavier tails (less harsh on occasional huge true effects).</span>
+        </li>
+      </ol>
+      <div class="sidenote">
+        <p class="sidenote-title">Subtle Senior Caveat</p>
+        <p style="margin:0;">Lasso equals the <strong>MAP mode</strong> of a Laplace posterior, <em>not</em> the posterior mean! A full Bayesian Lasso (averaging over the posterior) actually yields dense, non-zero posterior means — it is taking the <em>mode</em> at the cusp that produces exact zeros.</p>
+      </div>
+    </article>
+
+    <section class="sim-card" data-simulator="bayesian-prior" aria-labelledby="sim-prior-title">
+      <div class="sim-header">
+        <h3 class="sim-title" id="sim-prior-title">Interactive Lab: Gaussian (Ridge) vs. Laplace (Lasso) Prior Density</h3>
+      </div>
+      <div class="sim-controls">
+        <div class="control-group">
+          <label for="prior-scale">Prior Std Dev τ (smaller τ = stronger λ) <output data-out="prior-scale">1.00</output></label>
+          <input type="range" id="prior-scale" data-sim="prior-scale" min="0.45" max="2.0" step="0.05" value="1.0">
+        </div>
+      </div>
+      <div class="sim-stage">
+        <svg class="sim-svg" viewBox="0 0 320 200" role="img" aria-label="Overlay of zero-mean Gaussian and Laplace probability densities with matched variance"></svg>
+        <div class="sim-readout">
+          <p class="sim-insight" style="margin-top:0; border-top:none; padding-top:0;" data-out="insight"></p>
+        </div>
+      </div>
+    </section>
+
+    <article class="prose">
+      <h2>2. Elastic Net: Fixing Both of Lasso's Failure Modes</h2>
+      <p>
+        Zou &amp; Hastie (2005) combined L₁ and L₂ into the <a href="../reference/glossary.html#elastic-net">Elastic Net</a> objective:<a class="cite" href="https://doi.org/10.1111/j.1467-9868.2005.00503.x" target="_blank" rel="noopener">[Zou &amp; Hastie 2005]</a>
+      </p>
+      <div class="math-block">
+        <span class="eq-main">J<sub>EN</sub>(β) = (1 / 2n)‖y − Xβ‖₂² + λ [ α‖β‖₁ + ½(1 − α)‖β‖₂² ]</span>
+        <span class="eq-note">In scikit-learn: <code>alpha</code> is overall λ, and <code>l1_ratio</code> is the mixing weight α ∈ [0, 1] (0 = Ridge, 1 = Lasso).<a class="cite" href="https://scikit-learn.org/stable/modules/linear_model.html" target="_blank" rel="noopener">[sklearn §1.1.5]</a></span>
+      </div>
+      <ul>
+        <li><strong>How it solves correlated groups ("Grouping Effect"):</strong> The L₂ term makes the objective <em>strictly convex</em> for any <code>α &lt; 1</code>, curving the sides of the L₁ diamond outward. Two strongly correlated predictors now enter or exit the model <strong>together</strong> with nearly equal weights instead of Lasso flipping a coin between them.</li>
+        <li><strong>How it breaks Lasso's <code>p &gt; n</code> saturation cap:</strong> Algebraically, adding <code>λ₂‖β‖₂²</code> is equivalent to appending <code>p</code> pseudo-rows <code>√λ₂ · Iₚ</code> (with target <code>0</code>) to <code>X</code>! That boosts the augmented design matrix to full column rank <code>p</code>, allowing Elastic Net to select <strong>more than <code>n</code></strong> predictors even when <code>p ≫ n</code> (crucial in genomics or text TF-IDF).</li>
+        <li><strong>Trade-off:</strong> You must tune <strong>two</strong> hyperparameters (<code>λ</code> and <code>l1_ratio</code>) on a 2D CV grid, costing more compute.</li>
+      </ul>
+
+      <h2>3. Tuning λ, Cross-Validation &amp; Four Real-World Traps</h2>
+
+      <section class="accordion" aria-labelledby="traps-head">
+        <h3 id="traps-head">Expand each production &amp; interview trap</h3>
+
+        <details open>
+          <summary>Trap 1: Data Leakage from Standardizing Before Cross-Validation</summary>
+          <div class="details-body">
+            <p><strong>Wrong:</strong> <code>X_scaled = StandardScaler().fit_transform(X)</code> followed by <code>cross_val_score(LassoCV(), X_scaled, y)</code>.</p>
+            <p><strong>Right:</strong> Wrap scaler + estimator inside a <code>Pipeline([('scaler', StandardScaler()), ('model', LassoCV())])</code> so mean and standard deviation are computed strictly on each training split.</p>
+            <p><strong>Why:</strong> Fitting the scaler on the entire dataset leaks validation fold distribution statistics into training folds — especially dangerous in small-sample or time-series splits.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>Trap 2: Choosing λ_min vs. the 1-SE Rule</summary>
+          <div class="details-body">
+            <p><strong>How:</strong> Plot CV MSE across a log-spaced grid of <code>λ</code> (e.g., <code>10⁻⁴</code> to <code>10⁴</code>). Compute both the mean CV error and its standard error across folds.</p>
+            <p><strong>Why use the <a href="../reference/glossary.html#one-se-rule">1-SE rule</a>:</strong> CV error curves are often flat near the minimum. Picking the absolute minimum <code>λ_min</code> can overfit the CV folds and retain noisy features. The 1-SE rule picks the <strong>largest λ</strong> (simplest, most regularized model) whose CV error is within <code>1 standard error</code> of <code>λ_min</code>.<a class="cite" href="https://web.stanford.edu/~hastie/ElemStatLearn/" target="_blank" rel="noopener">[ESL §7.10]</a></p>
+          </div>
+        </details>
+
+        <details>
+          <summary>Trap 3: Invalid p-values After Lasso ("Post-Selection Inference")</summary>
+          <div class="details-body">
+            <p><strong>The bug:</strong> Running Lasso to select 10 features, then fitting OLS on those 10 features on the <em>same data</em> and reporting OLS p-values or confidence intervals.</p>
+            <p><strong>Why it is invalid:</strong> You used <code>y</code> twice — once to cherry-pick features that happened to correlate strongly with <code>y</code> in this sample, and again to test whether they correlate with <code>y</code>! That inflates false positives massively.</p>
+            <p><strong>How to fix it:</strong> Use <strong>sample splitting</strong> (select features on split A, fit OLS &amp; compute p-values on split B), or formal selective-inference methods. Note: if you only want lower prediction bias (not p-values), <em>Relaxed Lasso</em> (tuning a blend between Lasso and post-Lasso OLS via CV) is valid and often improves test MSE.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>Trap 4: L₂ Regularization vs. Weight Decay in Deep Learning (SGD vs. AdamW)</summary>
+          <div class="details-body">
+            <p><strong>Why interviewers ask this for ML Engineer roles:</strong> Under vanilla SGD, adding <code>½λ‖w‖₂²</code> to the loss adds <code>λw</code> to the gradient, so the weight update is <code>w ← w − η(∇L + λw) = (1 − ηλ)w − η∇L</code> — <strong>identical</strong> to weight decay.</p>
+            <p><strong>Where they diverge:</strong> In adaptive optimizers like <strong>Adam</strong>, adding L₂ to the loss sends <code>λw</code> through the moving-average variance denominator <code>√vₜ</code>, so weights with large historical gradients get <em>less</em> regularization! <strong>AdamW</strong> (Loshchilov &amp; Hutter, 2019) decouples weight decay so <code>w</code> decays directly by <code>(1 − ηλ)w</code> outside the adaptive step.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>Bonus: Logistic Regression &amp; GLMs with L₁ / L₂ (The C = 1/λ Convention)</summary>
+          <div class="details-body">
+            <p>Regularization extends directly to classification by replacing RSS with negative log-likelihood (cross-entropy): <code>min −log L(β) + λ · Penalty(β)</code>. In <code>scikit-learn</code>'s <code>LogisticRegression</code>, the parameter is <strong><code>C = 1 / λ</code></strong> (inverse regularization strength): <em>smaller <code>C</code> means stronger regularization</em>! Watch out for this classic coding-interview flip.</p>
+          </div>
+        </details>
+      </section>
+    </article>
+
+    <section class="drill-section prose" aria-labelledby="quiz-head-4" data-quiz-group="lesson-04">
+      <h2 id="quiz-head-4">Retrieval Drill (Lesson 04)</h2>
+      <div class="quiz-scorebar">
+        <span data-quiz-score>Score: 0 / 4</span>
+        <button type="button" class="btn-secondary" data-quiz-reset>Reset quiz</button>
+      </div>
+
+      <div class="quiz-card" data-answer="3" data-explain="Taking the negative log of a zero-mean Laplace density p(β) ∝ exp(−|β|/b) yields |β|/b, producing the L₁ Lasso penalty with λ = 2σ²/b. A Gaussian prior yields the L₂ Ridge penalty.">
+        <p class="quiz-prompt">1. Under a Gaussian likelihood on y, which prior on β makes the MAP estimator equal to Lasso?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Zero mean Gaussian prior because negative log density squares coefficients</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Zero mean Cauchy prior because heavy tails shrink noisy predictors</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Zero mean uniform prior because bounded intervals constrain weight magnitudes</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Zero mean Laplace prior because negative log density takes absolutes</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="1" data-explain="Adding the strictly convex L₂ penalty to L₁ curves the diamond sides outward and forces correlated features to share weight (the grouping effect) instead of arbitrarily zeroing out all but one.">
+        <p class="quiz-prompt">2. Why does Elastic Net fix Lasso's instability on groups of strongly correlated features?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Elastic net drops every correlated column automatically before fitting weights</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Adding L2 strict convexity encourages correlated predictors to share weight</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Elastic net replaces cross validation with closed form matrix inversion</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Adding L2 removes sharp corners so zero coefficients disappear completely</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="0" data-explain="The 1-SE rule favors parsimony: among all λ values whose CV error falls within 1 standard error of the minimum CV error, pick the LARGEST λ (most regularized, simplest model).">
+        <p class="quiz-prompt">3. What does the 1-SE rule select when choosing λ from K-fold cross-validation?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Largest lambda whose error stays within one standard error bound</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Smallest lambda whose error stays within one standard error bound</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Average lambda whose error matches every training fold sample mean</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Zero lambda whenever validation variance falls below one percent error</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="2" data-explain="Fitting StandardScaler on all of X leaks the validation fold's mean and standard deviation into the training folds, optimistically biasing cross-validation error. Always put StandardScaler inside a scikit-learn Pipeline.">
+        <p class="quiz-prompt">4. Why is running StandardScaler on X before cross_val_score a subtle ML bug?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>StandardScaler breaks Lasso sparsity whenever validation rows contain negative values</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>StandardScaler inflates Ridge eigenvalues and slows down Cholesky matrix factorization</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Validation mean and variance leak into training folds biasing error</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Intercept centering fails whenever training and test folds share scalers</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="source-box prose" aria-labelledby="rec-source-4">
+      <h2 id="rec-source-4">Recommended Primary Source for Lesson 04</h2>
+      <p style="margin:0;">
+        Read Zou &amp; Hastie (2005), <a href="https://doi.org/10.1111/j.1467-9868.2005.00503.x" target="_blank" rel="noopener"><em>"Regularization and Variable Selection via the Elastic Net"</em></a> (Sections 1–2.3 for the augmented-matrix proof and Grouping Theorem) and the <a href="https://scikit-learn.org/stable/modules/linear_model.html" target="_blank" rel="noopener">scikit-learn Linear Models User Guide</a> (§1.1.2–1.1.5).
+      </p>
+    </section>
+
+    <section class="agent-box prose" aria-labelledby="agent-4">
+      <h2 id="agent-4">Have a Question? Ask Your Teacher-Agent</h2>
+      <p style="margin:0;">
+        Want to derive the exact Bayesian MAP algebra with every constant written out, or see a working Python <code>Pipeline</code> + <code>ElasticNetCV</code> snippet with 1-SE selection? Ask your agent!
+      </p>
+    </section>
+
+    <nav class="lesson-pager" aria-label="Lesson navigation">
+      <a href="./0003-lasso-regression-l1-geometry-sparsity-and-solvers.html">← Lesson 03: Lasso Geometry &amp; Solvers</a>
+      <a href="./0005-interview-drills-and-whiteboard-scenarios.html">Next: Lesson 05 — Interview Drills Gauntlet →</a>
+    </nav>
+  </main>
+
+  <script src="../assets/simulators.js"></script>
+  <script src="../assets/drills.js"></script>
+</body>
+</html>

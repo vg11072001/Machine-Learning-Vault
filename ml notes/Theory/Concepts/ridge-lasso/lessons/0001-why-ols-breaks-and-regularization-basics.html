@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Lesson 01: Why OLS Breaks &amp; Regularization Basics</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="site-nav" aria-label="Course navigation">
+    <div class="site-nav-inner">
+      <a class="site-brand" href="../index.html"><span>L₁ / L₂</span> Ridge &amp; Lasso Course</a>
+      <ul class="nav-links">
+        <li><a href="../index.html">Roadmap</a></li>
+        <li><a href="./0001-why-ols-breaks-and-regularization-basics.html" aria-current="page">Lesson 01</a></li>
+        <li><a href="../reference/glossary.html">Glossary</a></li>
+        <li><a href="../reference/interview-cheatsheet.html">Interview Cheat Sheet</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="lesson-header">
+      <p class="lesson-eyebrow">Lesson 01 of 05 · Foundations</p>
+      <h1>Why OLS Breaks — and How Regularization Fixes It</h1>
+      <p class="lesson-subtitle">
+        Before memorizing L₁ and L₂ formulas, nail the exact failure mode of Ordinary Least Squares, the bias–variance trade, and the two preprocessing rules that trip up half of ML candidates.
+      </p>
+      <div class="meta-strip">
+        <span class="meta-pill">~7 min read + drills</span>
+        <span class="meta-pill">Win: Explain WHY we regularize, scale, and exclude β₀</span>
+      </div>
+    </header>
+
+    <article class="prose">
+      <h2>1. Where Ordinary Least Squares (OLS) Breaks</h2>
+      <p>
+        Standard linear regression chooses coefficients <span class="math-var">β</span> to minimize the <a href="../reference/glossary.html#ols">Residual Sum of Squares (RSS)</a>:
+      </p>
+      <div class="math-block">
+        <span class="eq-main">RSS(β) = ‖y − Xβ‖₂² = Σᵢ (yᵢ − β₀ − Σⱼ xᵢⱼβⱼ)²</span>
+        <span class="eq-note">Closed-form OLS estimator: β̂<sub>OLS</sub> = (XᵀX)⁻¹ Xᵀy &nbsp;·&nbsp; Estimator variance: Var(β̂<sub>OLS</sub>) = σ² (XᵀX)⁻¹</span>
+      </div>
+      <p>
+        By the Gauss–Markov theorem, OLS has the lowest variance among all <em>unbiased</em> linear estimators.<a class="cite" href="https://www.statlearning.com/" target="_blank" rel="noopener">[ISLR Ch.6]</a> Yet in real datasets, "lowest among unbiased" can still be catastrophically bad in three situations:
+      </p>
+      <ol class="step-list">
+        <li>
+          <strong>High-dimensional / small-sample regime (<code>p ≈ n</code> or <code>p &gt; n</code>):</strong>
+          When predictors approach or exceed rows, OLS fits noise with near-zero training error. When <code>p &gt; n</code>, <code>XᵀX</code> is singular (not invertible), so infinitely many solutions give <code>RSS = 0</code>.
+          <span class="step-why"><strong>Why it hurts test MSE:</strong> Zero bias on training data, massive variance on unseen data.</span>
+        </li>
+        <li>
+          <strong><a href="../reference/glossary.html#multicollinearity">Multicollinearity</a> (correlated features):</strong>
+          Suppose <code>x₁</code> and <code>x₂</code> are nearly identical (e.g., house area in sq ft and number of rooms). You can set <code>β₁ = +1000</code> and <code>β₂ = −998</code> and get nearly the same training predictions as <code>β₁ = 1, β₂ = 1</code>!
+          <span class="step-why"><strong>Why mathematically:</strong> Near-collinear columns make the smallest eigenvalue of <code>XᵀX</code> nearly zero, so <code>(XᵀX)⁻¹</code> blows up and <code>Var(β̂<sub>OLS</sub>) = σ²(XᵀX)⁻¹</code> explodes.<a class="cite" href="https://doi.org/10.1080/00401706.1970.10488634" target="_blank" rel="noopener">[Hoerl &amp; Kennard 1970]</a></span>
+        </li>
+        <li>
+          <strong>Many irrelevant noise features:</strong>
+          Every useless column absorbs random noise from <code>y</code>, adding roughly <code>σ²/n</code> to test prediction variance without improving true signal.
+        </li>
+      </ol>
+
+      <h2>2. The Regularization Trade: Buying Lower Variance with Bias</h2>
+      <p>
+        Expected test prediction error decomposes into three pieces:<a class="cite" href="https://web.stanford.edu/~hastie/ElemStatLearn/" target="_blank" rel="noopener">[ESL Ch.3]</a>
+      </p>
+      <div class="math-block">
+        <span class="eq-main">E[(y₀ − ŷ₀)²] = Bias(ŷ₀)² + Var(ŷ₀) + σ²</span>
+        <span class="eq-note">OLS insists on Bias = 0. Regularization accepts a small Bias² to slash Var(ŷ₀).</span>
+      </div>
+      <p>
+        <strong>How regularization works:</strong> Add a non-negative <em>penalty</em> on coefficient size to the loss, controlled by a hyperparameter <code>λ ≥ 0</code>:
+      </p>
+      <div class="math-block">
+        <span class="eq-main">Ridge (L₂): min<sub>β</sub> { RSS(β) + λ Σ<sub>j=1..p</sub> βⱼ² }</span>
+        <span class="eq-main" style="margin-top:0.4rem;">Lasso (L₁): min<sub>β</sub> { RSS(β) + λ Σ<sub>j=1..p</sub> |βⱼ| }</span>
+        <span class="eq-note">When λ = 0 → OLS. As λ → ∞ → all slopes β₁…βₚ shrink to 0 (constant mean model ŷ = ȳ).</span>
+      </div>
+
+      <div class="callout-why">
+        <span class="callout-label">Why penalizing large β works (the core intuition)</span>
+        Wild, opposing weights like <code>+1000</code> and <code>−998</code> have a huge penalty (<code>1000² + 998² ≈ 2×10⁶</code>), whereas moderate weights like <code>+1</code> and <code>+1</code> cost almost nothing (<code>1² + 1² = 2</code>). The penalty forces the optimizer to prefer small, stable weights unless the data strongly justifies larger ones.
+      </div>
+
+      <h2>3. The Two Non-Negotiable Preprocessing Rules (and WHY)</h2>
+      <p>
+        Interviewers love asking about preprocessing before even touching calculus. Memorize both rules <em>with their proofs</em>:
+      </p>
+
+      <section class="accordion" aria-labelledby="prep-rules-head">
+        <h3 id="prep-rules-head">Expand each rule for the step-by-step "How" and "Why"</h3>
+
+        <details open>
+          <summary>Rule 1: Always standardize features before Ridge or Lasso</summary>
+          <div class="details-body">
+            <p><strong>How:</strong> Transform every predictor to zero mean and unit variance: <code>x̃ⱼ = (xⱼ − μⱼ) / sⱼ</code> (using training-fold statistics only).</p>
+            <p><strong>Why:</strong> In OLS, multiplying a feature by <code>1000</code> (e.g., measuring income in <em>thousands of dollars</em> instead of <em>dollars</em>) simply multiplies its estimated coefficient by <code>1000</code>, leaving predictions <code>xⱼβⱼ</code> completely unchanged (OLS is <em>scale-equivariant</em>).</p>
+            <p>In Ridge and Lasso, that invariance <strong>breaks</strong>: a feature measured in kilometers instead of meters has a 1,000× larger coefficient, so Ridge penalizes it <strong>1,000,000×</strong> more and Lasso <strong>1,000×</strong> more!<a class="cite" href="https://www.statlearning.com/" target="_blank" rel="noopener">[ISLR §6.2.1]</a> Standardizing puts every predictor on an equal footing so the penalty reflects predictive strength, not arbitrary units.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>Rule 2: Never penalize the intercept β₀</summary>
+          <div class="details-body">
+            <p><strong>How:</strong> Notice the penalty sum runs over <code>j = 1 … p</code>, deliberately omitting <code>j = 0</code>. Equivalently, if you center each feature (mean 0) and center <code>y</code>, the optimal intercept is always <code>β̂₀ = ȳ</code>.</p>
+            <p><strong>Why:</strong> Adding a constant <code>+100</code> to every target value <code>yᵢ</code> (e.g., converting Celsius to Kelvin) should just shift every prediction by <code>+100</code>. If you penalized <code>β₀</code>, the penalty would pull <code>β̂₀</code> toward zero, systematically under-predicting high-mean targets and making predictions depend on the arbitrary origin of <code>y</code>.<a class="cite" href="https://web.stanford.edu/~hastie/ElemStatLearn/" target="_blank" rel="noopener">[ESL §3.4.1]</a></p>
+          </div>
+        </details>
+
+        <details>
+          <summary>Bonus Edge Case: What about one-hot encoded categorical variables?</summary>
+          <div class="details-body">
+            <p><strong>Why interviewers ask this:</strong> If you standardize a rare binary dummy variable (e.g. 1% ones, 99% zeros, <code>s ≈ 0.1</code>), dividing by <code>0.1</code> inflates the "1" entry to <code>+10</code>, making its coefficient 10× smaller and therefore <em>less</em> penalized than a 50/50 dummy!</p>
+            <p><strong>Practical answer:</strong> For binary/dummy columns, either leave them unscaled (or scale continuous variables by <code>2s</code>, Gelman's convention) and check via cross-validation; also remember that with regularization you should usually keep <strong>all k</strong> one-hot columns instead of dropping a reference category, because dropping one breaks symmetry across categories under a penalty.</p>
+          </div>
+        </details>
+      </section>
+    </article>
+
+    <section class="drill-section prose" aria-labelledby="quiz-head" data-quiz-group="lesson-01">
+      <h2 id="quiz-head">Retrieval Drill (Lesson 01)</h2>
+      <p>Answer from memory before revealing feedback. All four options have identical word count — judge purely on statistical truth.</p>
+      <div class="quiz-scorebar">
+        <span data-quiz-score>Score: 0 / 3</span>
+        <button type="button" class="btn-secondary" data-quiz-reset>Reset quiz</button>
+      </div>
+
+      <div class="quiz-card" data-answer="1" data-explain="With correlated predictors, the smallest eigenvalues of XᵀX approach zero. Since Var(β̂_OLS) = σ²(XᵀX)⁻¹, inverting near-zero eigenvalues causes coefficient variance to explode while OLS remains unbiased.">
+        <p class="quiz-prompt">1. What breaks OLS when two predictors are nearly collinear?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Training residuals grow very large because design matrix columns expand</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Coefficient variance explodes dramatically because small eigenvalues invert into giants</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Model bias rises sharply because ordinary least squares shrinks weights</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Intercept estimates vanish completely because correlated features cancel sample means</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="3" data-explain="OLS is scale-equivariant, but Ridge (βⱼ²) and Lasso (|βⱼ|) penalize raw coefficient magnitudes. A feature measured in larger physical units has a larger βⱼ and gets unfairly penalized unless predictors are standardized.">
+        <p class="quiz-prompt">2. Why must predictors be standardized before applying Ridge or Lasso?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Regularization algorithms crash whenever input features contain negative numbers</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Standardized predictors force every residual error into normal distribution</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Unit scaling eliminates multicollinearity between strongly correlated input columns</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Penalty terms shrink coefficients unfairly based on feature units</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz-card" data-answer="0" data-explain="The intercept β₀ captures the baseline level ȳ when predictors are centered. Penalizing it biases predictions toward zero instead of ȳ and breaks shift-equivariance when y is shifted by a constant.">
+        <p class="quiz-prompt">3. Why is the intercept β₀ excluded from the penalty term?</p>
+        <div class="quiz-options">
+          <button type="button" class="quiz-option"><span class="opt-letter">A.</span><span>Penalizing intercepts shifts predictions toward zero instead of target mean</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">B.</span><span>Penalizing intercepts breaks matrix convexity during closed form ridge inversion</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">C.</span><span>Penalizing intercepts forces correlated predictors to flip signs during training</span></button>
+          <button type="button" class="quiz-option"><span class="opt-letter">D.</span><span>Penalizing intercepts prevents cross validation from scoring held out folds</span></button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="whiteboard-drill" data-drill-id="wb-01">
+        <span class="drill-tag">Interview Oral Drill · 60 seconds</span>
+        <p><strong>Interviewer asks:</strong> "My OLS model has low training error and huge weights like +4,200 and −4,195 on two features. Why is that happening, and why does adding a penalty fix test error even though it adds bias?"</p>
+        <section class="accordion" aria-label="Model answer for oral drill 1">
+          <details>
+            <summary>Speak your answer aloud first, then reveal the grading rubric</summary>
+            <div class="details-body">
+              <ul>
+                <li><strong>Diagnose the symptom:</strong> Large opposing weights are the classic signature of <em>multicollinearity</em> — the two features move together, so their difference carries near-zero variance, inflating <code>Var(β̂) = σ²(XᵀX)⁻¹</code>.</li>
+                <li><strong>Invoke Bias–Variance:</strong> Total test MSE = <code>Bias² + Variance + σ²</code>. OLS enforces <code>Bias = 0</code> at the cost of massive variance.</li>
+                <li><strong>Explain the fix:</strong> Penalizing <code>‖β‖₂²</code> or <code>‖β‖₁</code> rules out canceling mega-weights; the tiny induced bias is outweighed by a dramatic variance drop, lowering test MSE.</li>
+                <li><strong>Bonus signal:</strong> Mention standardizing predictors first and leaving <code>β₀</code> unpenalized.</li>
+              </ul>
+            </div>
+          </details>
+        </section>
+        <div class="self-rate">
+          <span>Self-check:</span>
+          <button type="button" class="btn-secondary" data-rate="good">Nailed it</button>
+          <button type="button" class="btn-secondary" data-rate="review">Review again</button>
+          <span data-rate-status></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="source-box prose" aria-labelledby="rec-source-1">
+      <h2 id="rec-source-1">Recommended Primary Source for Lesson 01</h2>
+      <p style="margin:0;">
+        Read <strong>ISLR Chapter 6, Section 6.2 ("Shrinkage Methods")</strong> in <a href="https://www.statlearning.com/" target="_blank" rel="noopener"><em>An Introduction to Statistical Learning</em></a> (free official PDF) — pay close attention to Figure 6.5 (the bias–variance decomposition curves as λ varies) and the note on standardizing predictors.
+      </p>
+    </section>
+
+    <section class="agent-box prose" aria-labelledby="agent-1">
+      <h2 id="agent-1">Have a Question? Ask Your Teacher-Agent</h2>
+      <p style="margin:0;">
+        Unsure why OLS is scale-equivariant or want to walk through a concrete 2-variable numerical example of multicollinearity exploding? Ask your agent right in chat!
+      </p>
+    </section>
+
+    <nav class="lesson-pager" aria-label="Lesson navigation">
+      <a href="../index.html">← Course Roadmap</a>
+      <a href="./0002-ridge-regression-l2-math-svd-and-why.html">Next: Lesson 02 — Ridge Math &amp; SVD →</a>
+    </nav>
+  </main>
+
+  <script src="../assets/drills.js"></script>
+</body>
+</html>

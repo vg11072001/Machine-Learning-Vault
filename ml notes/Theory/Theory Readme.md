@@ -35,6 +35,10 @@
 
 ### ML theory 
 
+#### Interactive Concepts (`Concepts/`)
+- [Concepts Hub](Concepts/README.md) · [Open Interactive Hub](https://raw.githack.com/vg11072001/Machine-Learning-Vault/main/ml%20notes/Theory/Concepts/index.html)
+- **Ridge & Lasso Regularization (Basic → Advanced):** [Concept Folder & Notes](Concepts/ridge-lasso/README.md) · [Launch HTML Course](https://raw.githack.com/vg11072001/Machine-Learning-Vault/main/ml%20notes/Theory/Concepts/ridge-lasso/index.html)
+
 ![[Pasted image 20241110202047.png]]
 
  such as the bias-variance trade-off, 
